@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analizador de Gastos</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f0f2f5; color: #333; }
+        .header { background: #2E75B6; color: white; padding: 20px; text-align: center; }
+        .header h1 { font-size: 24px; }
+        .header p { font-size: 14px; opacity: 0.8; margin-top: 5px; }
+        .container { max-width: 800px; margin: 30px auto; padding: 0 20px; }
+        .card { background: white; border-radius: 10px; padding: 25px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .card h2 { color: #2E75B6; margin-bottom: 15px; font-size: 18px; }
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .tab { padding: 10px 20px; border: 2px solid #2E75B6; border-radius: 6px; cursor: pointer; background: white; color: #2E75B6; font-size: 14px; }
+        .tab.active { background: #2E75B6; color: white; }
+        .seccion { display: none; }
+        .seccion.activa { display: block; }
+        input[type="file"] { width: 100%; padding: 10px; border: 2px dashed #2E75B6; border-radius: 6px; margin-bottom: 15px; }
+        .btn { background: #2E75B6; color: white; border: none; padding: 12px 25px; border-radius: 6px; cursor: pointer; font-size: 15px; width: 100%; }
+        .btn:hover { background: #1F5496; }
+        .tabla-manual { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+        .tabla-manual th { background: #2E75B6; color: white; padding: 8px; text-align: left; }
+        .tabla-manual td { padding: 8px; border-bottom: 1px solid #eee; }
+        .tabla-manual input { width: 100%; border: 1px solid #ddd; padding: 4px; border-radius: 4px; }
+        .agregar-fila { background: #27ae60; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; margin-bottom: 15px; }
+        .resultados { display: none; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .stat { background: #f8f9fa; border-radius: 8px; padding: 15px; text-align: center; border-left: 4px solid #2E75B6; }
+        .stat .numero { font-size: 22px; font-weight: bold; color: #2E75B6; }
+        .stat .label { font-size: 12px; color: #666; margin-top: 5px; }
+        .barra-container { margin-bottom: 10px; }
+        .barra-label { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px; }
+        .barra { height: 20px; background: #e0e0e0; border-radius: 10px; overflow: hidden; }
+        .barra-fill { height: 100%; background: #2E75B6; border-radius: 10px; transition: width 0.5s; }
+        .alerta { background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; padding: 12px; margin-top: 15px; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>💰 Analizador de Gastos</h1>
+    <p>Entendé en qué gastás tu plata</p>
+</div>
+
+<div class="container">
+    <div class="card">
+        <h2>Cargá tus gastos</h2>
+        <div class="tabs">
+            <button class="tab active" onclick="cambiarTab('archivo')">📁 Subir archivo</button>
+            <button class="tab" onclick="cambiarTab('manual')">✏️ Tipear manualmente</button>
+        </div>
+
+        <!-- Subir archivo -->
+        <div id="seccion-archivo" class="seccion activa">
+            <p style="font-size:13px; color:#666; margin-bottom:10px;">Formatos aceptados: Excel (.xlsx) o CSV</p>
+            <input type="file" id="archivo" accept=".xlsx,.xls,.csv">
+            <button class="btn" onclick="analizarArchivo()">Analizar gastos</button>
+        </div>
+
+        <!-- Manual -->
+        <div id="seccion-manual" class="seccion">
+            <table class="tabla-manual">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Descripción</th>
+                        <th>Categoría</th>
+                        <th>Monto ($)</th>
+                    </tr>
+                </thead>
+                <tbody id="filas-manual">
+                    <tr>
+                        <td><input type="text" placeholder="01/03/2025"></td>
+                        <td><input type="text" placeholder="Supermercado"></td>
+                        <td><input type="text" placeholder="Comida"></td>
+                        <td><input type="number" placeholder="5000"></td>
+                    </tr>
+                </tbody>
+            </table>
+            <button class="agregar-fila" onclick="agregarFila()">+ Agregar fila</button>
+            <button class="btn" onclick="analizarManual()">Analizar gastos</button>
+        </div>
+    </div>
+
+    <!-- Resultados -->
+    <div class="resultados" id="resultados">
+        <div class="card">
+            <h2>📊 Resumen de tus gastos</h2>
+            <div class="stats" id="stats"></div>
+        </div>
+        <div class="card">
+            <h2>📂 Gastos por categoría</h2>
+            <div id="barras"></div>
+            <div class="alerta" id="alerta"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+function cambiarTab(tab) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.seccion').forEach(s => s.classList.remove('activa'));
+    document.getElementById('seccion-' + tab).classList.add('activa');
+    event.target.classList.add('active');
+}
+
+function agregarFila() {
+    const tbody = document.getElementById('filas-manual');
+    const fila = document.createElement('tr');
+    fila.innerHTML = `
+        <td><input type="text" placeholder="01/03/2025"></td>
+        <td><input type="text" placeholder="Descripción"></td>
+        <td><input type="text" placeholder="Categoría"></td>
+        <td><input type="number" placeholder="0"></td>
+    `;
+    tbody.appendChild(fila);
+}
+
+async function analizarArchivo() {
+    const archivo = document.getElementById('archivo').files[0];
+    if (!archivo) { alert('Seleccioná un archivo primero'); return; }
+    const formData = new FormData();
+    formData.append('archivo', archivo);
+    const res = await fetch('/analizar', { method: 'POST', body: formData });
+    const data = await res.json();
+    mostrarResultados(data);
+}
+
+async function analizarManual() {
+    const filas = document.querySelectorAll('#filas-manual tr');
+    const datos = { Fecha: [], Descripcion: [], Categoria: [], Monto: [] };
+    filas.forEach(fila => {
+        const inputs = fila.querySelectorAll('input');
+        if (inputs[3].value) {
+            datos.Fecha.push(inputs[0].value);
+            datos.Descripcion.push(inputs[1].value);
+            datos.Categoria.push(inputs[2].value);
+            datos.Monto.push(parseFloat(inputs[3].value));
+        }
+    });
+    const formData = new FormData();
+    formData.append('datos_manuales', JSON.stringify(datos));
+    const res = await fetch('/analizar', { method: 'POST', body: formData });
+    const data = await res.json();
+    mostrarResultados(data);
+}
+
+function mostrarResultados(data) {
+    if (data.error) { alert('Error: ' + data.error); return; }
+    
+    document.getElementById('stats').innerHTML = `
+        <div class="stat"><div class="numero">$${data.total.toLocaleString()}</div><div class="label">Total gastado</div></div>
+        <div class="stat"><div class="numero">${data.cantidad_gastos}</div><div class="label">Transacciones</div></div>
+        <div class="stat"><div class="numero">$${data.gasto_promedio.toLocaleString()}</div><div class="label">Gasto promedio</div></div>
+    `;
+
+    const max = Math.max(...Object.values(data.por_categoria));
+    let barrasHTML = '';
+    for (const [cat, monto] of Object.entries(data.por_categoria)) {
+        const porcentaje = Math.round((monto / data.total) * 100);
+        const ancho = Math.round((monto / max) * 100);
+        barrasHTML += `
+            <div class="barra-container">
+                <div class="barra-label"><span>${cat}</span><span>$${monto.toLocaleString()} (${porcentaje}%)</span></div>
+                <div class="barra"><div class="barra-fill" style="width:${ancho}%"></div></div>
+            </div>
+        `;
+    }
+    document.getElementById('barras').innerHTML = barrasHTML;
+    document.getElementById('alerta').innerHTML = `⚠️ Tu mayor gasto fue en <strong>${data.categoria_max}</strong> con $${data.monto_max.toLocaleString()}`;
+    document.getElementById('resultados').style.display = 'block';
+    document.getElementById('resultados').scrollIntoView({ behavior: 'smooth' });
+}
+</script>
+</body>
+</html>

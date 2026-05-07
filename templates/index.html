@@ -1,178 +1,309 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Analizador de Gastos</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; background: #f0f2f5; color: #333; }
-        .header { background: #2E75B6; color: white; padding: 20px; text-align: center; }
-        .header h1 { font-size: 24px; }
-        .header p { font-size: 14px; opacity: 0.8; margin-top: 5px; }
-        .container { max-width: 800px; margin: 30px auto; padding: 0 20px; }
-        .card { background: white; border-radius: 10px; padding: 25px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        .card h2 { color: #2E75B6; margin-bottom: 15px; font-size: 18px; }
-        .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
-        .tab { padding: 10px 20px; border: 2px solid #2E75B6; border-radius: 6px; cursor: pointer; background: white; color: #2E75B6; font-size: 14px; }
-        .tab.active { background: #2E75B6; color: white; }
-        .seccion { display: none; }
-        .seccion.activa { display: block; }
-        input[type="file"] { width: 100%; padding: 10px; border: 2px dashed #2E75B6; border-radius: 6px; margin-bottom: 15px; }
-        .btn { background: #2E75B6; color: white; border: none; padding: 12px 25px; border-radius: 6px; cursor: pointer; font-size: 15px; width: 100%; }
-        .btn:hover { background: #1F5496; }
-        .tabla-manual { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
-        .tabla-manual th { background: #2E75B6; color: white; padding: 8px; text-align: left; }
-        .tabla-manual td { padding: 8px; border-bottom: 1px solid #eee; }
-        .tabla-manual input { width: 100%; border: 1px solid #ddd; padding: 4px; border-radius: 4px; }
-        .agregar-fila { background: #27ae60; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; margin-bottom: 15px; }
-        .resultados { display: none; }
-        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px; }
-        .stat { background: #f8f9fa; border-radius: 8px; padding: 15px; text-align: center; border-left: 4px solid #2E75B6; }
-        .stat .numero { font-size: 22px; font-weight: bold; color: #2E75B6; }
-        .stat .label { font-size: 12px; color: #666; margin-top: 5px; }
-        .barra-container { margin-bottom: 10px; }
-        .barra-label { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px; }
-        .barra { height: 20px; background: #e0e0e0; border-radius: 10px; overflow: hidden; }
-        .barra-fill { height: 100%; background: #2E75B6; border-radius: 10px; transition: width 0.5s; }
-        .alerta { background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; padding: 12px; margin-top: 15px; font-size: 14px; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ledgr° — Track what matters</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Inter',sans-serif;background:#010408;color:#e0e0e0;min-height:100vh;}
+
+/* SPLASH */
+#splash{position:fixed;inset:0;background:#010408;display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:999;transition:opacity 0.8s ease;}
+#splash.hidden{opacity:0;pointer-events:none;}
+.splash-circle{width:160px;height:160px;border-radius:50%;background:#02080f;border:1px solid #0f2a4a;display:flex;align-items:center;justify-content:center;position:relative;}
+.splash-text{font-size:32px;font-weight:700;letter-spacing:2px;display:flex;align-items:center;}
+.s-letter{display:inline-block;opacity:0;transform:translateY(6px);color:#fff;}
+.s-letter.v{animation:sIn 0.28s ease forwards;}
+@keyframes sIn{0%{opacity:0;transform:translateY(6px);text-shadow:none}50%{text-shadow:0 0 18px #a8c8ff,0 0 6px #fff}100%{opacity:1;transform:translateY(0);text-shadow:0 0 6px #4a80c840}}
+.e-wrap{position:relative;display:inline-block;opacity:0;transform:translateY(6px);width:21px;height:36px;overflow:hidden;}
+.e-wrap.v{animation:sIn 0.28s ease forwards;}
+.e-base{position:absolute;top:0;left:0;font-size:32px;font-weight:700;color:#ffffff18;line-height:1;font-family:'Inter',sans-serif;}
+.e-fill-c{position:absolute;bottom:0;left:0;width:100%;height:0%;overflow:hidden;transition:height 1s cubic-bezier(0.22,1,0.36,1);}
+.e-fill-t{position:absolute;bottom:0;left:0;font-size:32px;font-weight:700;color:#00c46a;line-height:1;text-shadow:0 0 8px #00c46a60;font-family:'Inter',sans-serif;}
+.s-degree{font-size:13px;color:#00c46a;opacity:0;vertical-align:super;margin-left:1px;transition:opacity 0.6s;text-shadow:0 0 8px #00c46a80;}
+.s-degree.v{opacity:1;}
+.splash-ring{position:absolute;border-radius:50%;border:1px solid #0a1f3a;opacity:0;}
+.splash-tag{margin-top:22px;font-size:10px;letter-spacing:5px;color:#1a3050;text-transform:uppercase;opacity:0;transition:opacity 1s;}
+.splash-tag.v{opacity:1;}
+
+/* NAV */
+nav{background:#02080f;border-bottom:1px solid #0f2a4a;padding:16px 32px;display:flex;align-items:center;justify-content:space-between;}
+.nav-logo{font-size:20px;font-weight:700;letter-spacing:2px;color:#fff;}
+.nav-logo span{color:#00c46a;}
+.nav-logo sup{font-size:9px;color:#00c46a;}
+.nav-tag{font-size:10px;letter-spacing:3px;color:#1a3050;text-transform:uppercase;}
+
+/* HERO */
+.hero{text-align:center;padding:64px 20px 40px;}
+.hero h1{font-size:42px;font-weight:700;color:#fff;line-height:1.2;margin-bottom:14px;}
+.hero h1 span{color:#00c46a;}
+.hero p{font-size:16px;color:#4a6080;max-width:480px;margin:0 auto;}
+
+/* MAIN */
+.container{max-width:900px;margin:0 auto;padding:0 20px 60px;}
+
+/* CARD */
+.card{background:#02080f;border:1px solid #0f2a4a;border-radius:16px;padding:28px;margin-bottom:24px;}
+.card-title{font-size:11px;font-weight:500;letter-spacing:4px;color:#1a3a6a;text-transform:uppercase;margin-bottom:22px;}
+
+/* TABS */
+.tabs{display:flex;gap:10px;margin-bottom:24px;}
+.tab{flex:1;padding:12px;border:1px solid #0f2a4a;border-radius:10px;cursor:pointer;background:transparent;color:#1a3a6a;font-size:13px;font-family:'Inter',sans-serif;transition:all 0.2s;letter-spacing:1px;}
+.tab.active{background:#00c46a10;border-color:#00c46a;color:#00c46a;}
+.tab:hover:not(.active){border-color:#1a3a6a;color:#4a80c8;}
+
+.sec{display:none;}
+.sec.on{display:block;}
+
+/* FILE DROP */
+.drop{border:1px dashed #0f2a4a;border-radius:12px;padding:40px;text-align:center;cursor:pointer;transition:all 0.2s;margin-bottom:16px;}
+.drop:hover{border-color:#00c46a;background:#00c46a05;}
+.drop-icon{font-size:40px;margin-bottom:12px;}
+.drop p{color:#1a3a6a;font-size:13px;line-height:1.8;}
+.drop p strong{color:#4a80c8;}
+.drop p small{color:#0f2a4a;font-size:11px;}
+input[type=file]{display:none;}
+.file-name{font-size:12px;color:#00c46a;margin-bottom:14px;display:none;}
+
+/* BUTTON */
+.btn{background:#00c46a;color:#010408;border:none;padding:14px 25px;border-radius:10px;cursor:pointer;font-size:14px;font-weight:600;width:100%;font-family:'Inter',sans-serif;letter-spacing:1px;transition:opacity 0.2s;}
+.btn:hover{opacity:0.85;}
+
+/* TABLA MANUAL */
+.tbl{width:100%;border-collapse:collapse;margin-bottom:14px;}
+.tbl th{background:#040f24;color:#1a3a6a;padding:10px;text-align:left;font-size:11px;font-weight:500;letter-spacing:2px;text-transform:uppercase;}
+.tbl td{padding:5px;border-bottom:1px solid #0f2a4a05;}
+.tbl input{width:100%;background:#010408;border:1px solid #0f2a4a;border-radius:6px;padding:8px;color:#e0e0e0;font-size:13px;font-family:'Inter',sans-serif;}
+.tbl input:focus{outline:none;border-color:#00c46a;}
+.btn-add{background:transparent;border:1px solid #0f2a4a;color:#1a3a6a;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:12px;font-family:'Inter',sans-serif;margin-bottom:14px;transition:all 0.2s;letter-spacing:1px;}
+.btn-add:hover{border-color:#00c46a;color:#00c46a;}
+
+/* LOADING */
+.loading{text-align:center;padding:20px;color:#1a3a6a;font-size:13px;letter-spacing:2px;display:none;}
+
+/* RESULTS */
+.results{display:none;}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px;}
+.stat{background:#010408;border:1px solid #0f2a4a;border-radius:12px;padding:20px;text-align:center;}
+.stat-num{font-size:24px;font-weight:700;color:#00c46a;}
+.stat-label{font-size:10px;color:#1a3a6a;margin-top:6px;text-transform:uppercase;letter-spacing:2px;}
+
+/* BARS */
+.bar-row{margin-bottom:16px;}
+.bar-header{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;}
+.bar-cat{color:#c0c0c0;}
+.bar-amt{color:#00c46a;font-weight:500;}
+.bar-track{height:6px;background:#0f2a4a;border-radius:10px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:10px;transition:width 0.8s ease;}
+
+.colors{--c0:#00c46a;--c1:#4a80c8;--c2:#c46a00;--c3:#c44a80;--c4:#6a4ac4;--c5:#4ac4c4;--c6:#c4c44a;--c7:#c44a4a;}
+
+/* ALERT */
+.alert{background:#00c46a08;border:1px solid #00c46a20;border-radius:10px;padding:14px 18px;margin-top:20px;font-size:13px;color:#4a9a6a;line-height:1.6;}
+.alert strong{color:#00c46a;}
+
+/* TIPS */
+.tips{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px;}
+.tip{background:#02080f;border:1px solid #0f2a4a;border-radius:12px;padding:18px;}
+.tip-icon{font-size:22px;margin-bottom:8px;}
+.tip-title{font-size:12px;font-weight:500;color:#4a80c8;margin-bottom:4px;letter-spacing:1px;}
+.tip-text{font-size:12px;color:#1a3a6a;line-height:1.6;}
+
+/* FOOTER */
+footer{text-align:center;padding:30px;font-size:11px;color:#0f2a4a;letter-spacing:2px;border-top:1px solid #0f2a4a;}
+
+@media(max-width:600px){
+  .stats{grid-template-columns:1fr;}
+  .tips{grid-template-columns:1fr;}
+  .hero h1{font-size:28px;}
+  nav{padding:14px 16px;}
+}
+</style>
 </head>
 <body>
 
-<div class="header">
-    <h1>💰 Analizador de Gastos</h1>
-    <p>Entendé en qué gastás tu plata</p>
+<!-- SPLASH -->
+<div id="splash">
+  <div class="splash-circle">
+    <div class="splash-ring" id="sr1" style="width:240px;height:240px;"></div>
+    <div class="splash-ring" id="sr2" style="width:190px;height:190px;"></div>
+    <div class="splash-text">
+      <span class="s-letter" id="sl0">L</span>
+      <span class="e-wrap" id="sl1"><span class="e-base">e</span><div class="e-fill-c" id="ef"><span class="e-fill-t">e</span></div></span>
+      <span class="s-letter" id="sl2">d</span>
+      <span class="s-letter" id="sl3">g</span>
+      <span class="s-letter" id="sl4">r</span>
+      <span class="s-degree" id="sdeg">°</span>
+    </div>
+  </div>
+  <div class="splash-tag" id="stag">track what matters</div>
 </div>
 
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">Ledgr<span>°</span></div>
+  <div class="nav-tag">track what matters</div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <h1>Entendé en qué<br>gastás tu <span>plata</span></h1>
+  <p>Subí tu resumen de tarjeta o banco y en segundos tenés un análisis completo de tus gastos.</p>
+</div>
+
+<!-- TIPS -->
 <div class="container">
+  <div class="tips">
+    <div class="tip"><div class="tip-icon">📊</div><div class="tip-title">Análisis instantáneo</div><div class="tip-text">Cargá tu archivo y en segundos ves en qué categorías gastás más.</div></div>
+    <div class="tip"><div class="tip-icon">🔒</div><div class="tip-title">100% privado</div><div class="tip-text">Tu información no se guarda en ningún servidor. Todo se procesa localmente.</div></div>
+    <div class="tip"><div class="tip-icon">📁</div><div class="tip-title">Multi-formato</div><div class="tip-text">Compatible con Excel, CSV y PDF. O cargá tus gastos manualmente.</div></div>
+  </div>
+
+  <!-- UPLOAD CARD -->
+  <div class="card">
+    <div class="card-title">cargá tus gastos</div>
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('file',this)">📁 Subir archivo</button>
+      <button class="tab" onclick="switchTab('manual',this)">✏️ Tipear manualmente</button>
+    </div>
+
+    <div id="sec-file" class="sec on">
+      <div class="drop" onclick="document.getElementById('finput').click()">
+        <div class="drop-icon">📂</div>
+        <p><strong>Hacé clic para subir tu archivo</strong></p>
+        <p>Excel · CSV · PDF</p>
+        <p><small>Tu archivo no se guarda en ningún servidor</small></p>
+      </div>
+      <input type="file" id="finput" accept=".xlsx,.xls,.csv,.pdf" onchange="showName(this)">
+      <p class="file-name" id="fname"></p>
+      <button class="btn" onclick="analyzeFile()">⚡ Analizar gastos</button>
+    </div>
+
+    <div id="sec-manual" class="sec">
+      <table class="tbl">
+        <thead><tr><th>Fecha</th><th>Descripción</th><th>Categoría</th><th>Monto ($)</th></tr></thead>
+        <tbody id="trows">
+          <tr>
+            <td><input type="text" placeholder="01/03/2025"></td>
+            <td><input type="text" placeholder="Supermercado Dia"></td>
+            <td><input type="text" placeholder="Comida"></td>
+            <td><input type="number" placeholder="5000"></td>
+          </tr>
+        </tbody>
+      </table>
+      <button class="btn-add" onclick="addRow()">+ Agregar fila</button>
+      <button class="btn" onclick="analyzeManual()">⚡ Analizar gastos</button>
+    </div>
+
+    <div class="loading" id="loading">⏳ analizando tus gastos...</div>
+  </div>
+
+  <!-- RESULTS -->
+  <div class="results colors" id="results">
     <div class="card">
-        <h2>Cargá tus gastos</h2>
-        <div class="tabs">
-            <button class="tab active" onclick="cambiarTab('archivo')">📁 Subir archivo</button>
-            <button class="tab" onclick="cambiarTab('manual')">✏️ Tipear manualmente</button>
-        </div>
-
-        <!-- Subir archivo -->
-        <div id="seccion-archivo" class="seccion activa">
-            <p style="font-size:13px; color:#666; margin-bottom:10px;">Formatos aceptados: Excel (.xlsx) o CSV</p>
-            <input type="file" id="archivo" accept=".xlsx,.xls,.csv">
-            <button class="btn" onclick="analizarArchivo()">Analizar gastos</button>
-        </div>
-
-        <!-- Manual -->
-        <div id="seccion-manual" class="seccion">
-            <table class="tabla-manual">
-                <thead>
-                    <tr>
-                        <th>Fecha</th>
-                        <th>Descripción</th>
-                        <th>Categoría</th>
-                        <th>Monto ($)</th>
-                    </tr>
-                </thead>
-                <tbody id="filas-manual">
-                    <tr>
-                        <td><input type="text" placeholder="01/03/2025"></td>
-                        <td><input type="text" placeholder="Supermercado"></td>
-                        <td><input type="text" placeholder="Comida"></td>
-                        <td><input type="number" placeholder="5000"></td>
-                    </tr>
-                </tbody>
-            </table>
-            <button class="agregar-fila" onclick="agregarFila()">+ Agregar fila</button>
-            <button class="btn" onclick="analizarManual()">Analizar gastos</button>
-        </div>
+      <div class="card-title">resumen</div>
+      <div class="stats" id="stats"></div>
     </div>
-
-    <!-- Resultados -->
-    <div class="resultados" id="resultados">
-        <div class="card">
-            <h2>📊 Resumen de tus gastos</h2>
-            <div class="stats" id="stats"></div>
-        </div>
-        <div class="card">
-            <h2>📂 Gastos por categoría</h2>
-            <div id="barras"></div>
-            <div class="alerta" id="alerta"></div>
-        </div>
+    <div class="card">
+      <div class="card-title">gastos por categoría</div>
+      <div id="bars"></div>
+      <div class="alert" id="alertMsg"></div>
     </div>
+  </div>
 </div>
+
+<footer>Ledgr° &nbsp;·&nbsp; track what matters &nbsp;·&nbsp; 2025</footer>
 
 <script>
-function cambiarTab(tab) {
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.seccion').forEach(s => s.classList.remove('activa'));
-    document.getElementById('seccion-' + tab).classList.add('activa');
-    event.target.classList.add('active');
+// SPLASH
+function tone(f,d,dl,t,g){try{const c=new(window.AudioContext||window.webkitAudioContext)(),o=c.createOscillator(),gn=c.createGain(),cp=c.createDynamicsCompressor();o.connect(gn);gn.connect(cp);cp.connect(c.destination);o.type=t;o.frequency.setValueAtTime(f,c.currentTime+dl);gn.gain.setValueAtTime(0,c.currentTime+dl);gn.gain.linearRampToValueAtTime(g,c.currentTime+dl+0.04);gn.gain.exponentialRampToValueAtTime(0.001,c.currentTime+dl+d);o.start(c.currentTime+dl);o.stop(c.currentTime+dl+d+0.1);}catch(e){}}
+
+function playLetter(i){const f=[55,65,73,82,98];tone(f[i],0.5,0,'sine',0.10);tone(f[i]*2,0.3,0.03,'triangle',0.04);}
+function playCinematic(){tone(55,2.5,0,'sine',0.22);tone(82,2.2,0.12,'sine',0.16);tone(110,2.0,0.22,'sine',0.12);tone(165,1.6,0.32,'triangle',0.08);tone(220,1.2,0.42,'sine',0.07);tone(330,0.9,0.52,'triangle',0.05);}
+
+window.addEventListener('load',()=>{
+  const ids=['sl0','sl1','sl2','sl3','sl4'];
+  const delays=[200,480,760,1020,1270];
+  delays.forEach((d,i)=>setTimeout(()=>{document.getElementById(ids[i]).classList.add('v');playLetter(i);},d));
+  setTimeout(()=>{document.getElementById('ef').style.height='100%';},580);
+  setTimeout(()=>{
+    document.getElementById('sdeg').classList.add('v');
+    const r1=document.getElementById('sr1'),r2=document.getElementById('sr2');
+    r1.style.cssText+=';animation:ringPulse 3s ease-out forwards;';
+    r2.style.cssText+=';animation:ringPulse2 3.2s ease-out forwards;';
+    playCinematic();
+  },1700);
+  setTimeout(()=>document.getElementById('stag').classList.add('v'),2300);
+  setTimeout(()=>{document.getElementById('splash').classList.add('hidden');},3400);
+});
+
+// APP
+function switchTab(tab,btn){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.sec').forEach(s=>s.classList.remove('on'));
+  document.getElementById('sec-'+tab).classList.add('on');
+  btn.classList.add('active');
 }
 
-function agregarFila() {
-    const tbody = document.getElementById('filas-manual');
-    const fila = document.createElement('tr');
-    fila.innerHTML = `
-        <td><input type="text" placeholder="01/03/2025"></td>
-        <td><input type="text" placeholder="Descripción"></td>
-        <td><input type="text" placeholder="Categoría"></td>
-        <td><input type="number" placeholder="0"></td>
-    `;
-    tbody.appendChild(fila);
+function showName(input){
+  const p=document.getElementById('fname');
+  if(input.files[0]){p.textContent='✓ '+input.files[0].name;p.style.display='block';}
 }
 
-async function analizarArchivo() {
-    const archivo = document.getElementById('archivo').files[0];
-    if (!archivo) { alert('Seleccioná un archivo primero'); return; }
-    const formData = new FormData();
-    formData.append('archivo', archivo);
-    const res = await fetch('/analizar', { method: 'POST', body: formData });
-    const data = await res.json();
-    mostrarResultados(data);
+function addRow(){
+  const tb=document.getElementById('trows');
+  const tr=document.createElement('tr');
+  tr.innerHTML='<td><input type="text" placeholder="01/03/2025"></td><td><input type="text" placeholder="Descripción"></td><td><input type="text" placeholder="Categoría"></td><td><input type="number" placeholder="0"></td>';
+  tb.appendChild(tr);
 }
 
-async function analizarManual() {
-    const filas = document.querySelectorAll('#filas-manual tr');
-    const datos = { Fecha: [], Descripcion: [], Categoria: [], Monto: [] };
-    filas.forEach(fila => {
-        const inputs = fila.querySelectorAll('input');
-        if (inputs[3].value) {
-            datos.Fecha.push(inputs[0].value);
-            datos.Descripcion.push(inputs[1].value);
-            datos.Categoria.push(inputs[2].value);
-            datos.Monto.push(parseFloat(inputs[3].value));
-        }
-    });
-    const formData = new FormData();
-    formData.append('datos_manuales', JSON.stringify(datos));
-    const res = await fetch('/analizar', { method: 'POST', body: formData });
-    const data = await res.json();
-    mostrarResultados(data);
+async function analyzeFile(){
+  const f=document.getElementById('finput').files[0];
+  if(!f){alert('Seleccioná un archivo primero');return;}
+  const fd=new FormData();fd.append('archivo',f);
+  document.getElementById('loading').style.display='block';
+  const r=await fetch('/analizar',{method:'POST',body:fd});
+  const d=await r.json();
+  document.getElementById('loading').style.display='none';
+  showResults(d);
 }
 
-function mostrarResultados(data) {
-    if (data.error) { alert('Error: ' + data.error); return; }
-    
-    document.getElementById('stats').innerHTML = `
-        <div class="stat"><div class="numero">$${data.total.toLocaleString()}</div><div class="label">Total gastado</div></div>
-        <div class="stat"><div class="numero">${data.cantidad_gastos}</div><div class="label">Transacciones</div></div>
-        <div class="stat"><div class="numero">$${data.gasto_promedio.toLocaleString()}</div><div class="label">Gasto promedio</div></div>
-    `;
+async function analyzeManual(){
+  const rows=document.querySelectorAll('#trows tr');
+  const data={Fecha:[],Descripcion:[],Categoria:[],Monto:[]};
+  rows.forEach(row=>{
+    const inp=row.querySelectorAll('input');
+    if(inp[3].value){data.Fecha.push(inp[0].value);data.Descripcion.push(inp[1].value);data.Categoria.push(inp[2].value);data.Monto.push(parseFloat(inp[3].value));}
+  });
+  const fd=new FormData();fd.append('datos_manuales',JSON.stringify(data));
+  document.getElementById('loading').style.display='block';
+  const r=await fetch('/analizar',{method:'POST',body:fd});
+  const d=await r.json();
+  document.getElementById('loading').style.display='none';
+  showResults(d);
+}
 
-    const max = Math.max(...Object.values(data.por_categoria));
-    let barrasHTML = '';
-    for (const [cat, monto] of Object.entries(data.por_categoria)) {
-        const porcentaje = Math.round((monto / data.total) * 100);
-        const ancho = Math.round((monto / max) * 100);
-        barrasHTML += `
-            <div class="barra-container">
-                <div class="barra-label"><span>${cat}</span><span>$${monto.toLocaleString()} (${porcentaje}%)</span></div>
-                <div class="barra"><div class="barra-fill" style="width:${ancho}%"></div></div>
-            </div>
-        `;
-    }
-    document.getElementById('barras').innerHTML = barrasHTML;
-    document.getElementById('alerta').innerHTML = `⚠️ Tu mayor gasto fue en <strong>${data.categoria_max}</strong> con $${data.monto_max.toLocaleString()}`;
-    document.getElementById('resultados').style.display = 'block';
-    document.getElementById('resultados').scrollIntoView({ behavior: 'smooth' });
+function showResults(data){
+  if(data.error){alert('Error: '+data.error);return;}
+  document.getElementById('stats').innerHTML=`
+    <div class="stat"><div class="stat-num">$${data.total.toLocaleString('es-AR')}</div><div class="stat-label">Total gastado</div></div>
+    <div class="stat"><div class="stat-num">${data.cantidad_gastos}</div><div class="stat-label">Transacciones</div></div>
+    <div class="stat"><div class="stat-num">$${data.gasto_promedio.toLocaleString('es-AR')}</div><div class="stat-label">Gasto promedio</div></div>
+  `;
+  const max=Math.max(...Object.values(data.por_categoria));
+  const colorVars=['--c0','--c1','--c2','--c3','--c4','--c5','--c6','--c7'];
+  let html='';
+  Object.entries(data.por_categoria).forEach(([cat,monto],i)=>{
+    const pct=Math.round((monto/data.total)*100);
+    const w=Math.round((monto/max)*100);
+    html+=`<div class="bar-row"><div class="bar-header"><span class="bar-cat">${cat}</span><span class="bar-amt">$${monto.toLocaleString('es-AR')} · ${pct}%</span></div><div class="bar-track"><div class="bar-fill" style="width:${w}%;background:var(${colorVars[i%8]})"></div></div></div>`;
+  });
+  document.getElementById('bars').innerHTML=html;
+  document.getElementById('alertMsg').innerHTML=`⚠️ Tu mayor gasto fue en <strong>${data.categoria_max}</strong> con <strong>$${data.monto_max.toLocaleString('es-AR')}</strong>. Revisá si podés optimizar esa categoría.`;
+  document.getElementById('results').style.display='block';
+  document.getElementById('results').scrollIntoView({behavior:'smooth'});
 }
 </script>
 </body>

@@ -3,8 +3,18 @@ import pandas as pd
 import pdfplumber
 import json
 import io
+import os
 
 app = Flask(__name__)
+
+# Límite de tamaño de archivo: 5MB
+app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024
+
+# Extensiones permitidas
+EXTENSIONES_PERMITIDAS = {'xlsx', 'xls', 'csv', 'pdf'}
+
+def extension_permitida(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in EXTENSIONES_PERMITIDAS
 
 def analizar_gastos(df):
     df.columns = [c.strip() for c in df.columns]
@@ -42,15 +52,26 @@ def analizar():
     try:
         if 'archivo' in request.files and request.files['archivo'].filename != '':
             archivo = request.files['archivo']
-            nombre = archivo.filename.lower()
+            nombre = archivo.filename
 
-            if nombre.endswith('.xlsx') or nombre.endswith('.xls'):
-                df = pd.read_excel(archivo)
-            elif nombre.endswith('.csv'):
-                df = pd.read_csv(archivo)
-            elif nombre.endswith('.pdf'):
+            # Validar extensión
+            if not extension_permitida(nombre):
+                return jsonify({'error': 'Formato no permitido. Usá Excel, CSV o PDF.'})
+
+            # Validar que el archivo no esté vacío
+            contenido = archivo.read()
+            if len(contenido) == 0:
+                return jsonify({'error': 'El archivo está vacío.'})
+            archivo.seek(0)
+
+            nombre_lower = nombre.lower()
+            if nombre_lower.endswith('.xlsx') or nombre_lower.endswith('.xls'):
+                df = pd.read_excel(io.BytesIO(contenido))
+            elif nombre_lower.endswith('.csv'):
+                df = pd.read_csv(io.BytesIO(contenido))
+            elif nombre_lower.endswith('.pdf'):
                 tablas = []
-                with pdfplumber.open(archivo) as pdf:
+                with pdfplumber.open(io.BytesIO(contenido)) as pdf:
                     for page in pdf.pages:
                         tabla = page.extract_table()
                         if tabla:
@@ -58,12 +79,20 @@ def analizar():
                 if not tablas:
                     return jsonify({'error': 'No se encontraron tablas en el PDF. Probá con Excel o CSV.'})
                 df = pd.DataFrame(tablas[1:], columns=tablas[0])
-            else:
-                return jsonify({'error': 'Formato no soportado. Usá Excel, CSV o PDF.'})
+
+            # Validar que tenga datos
+            if df.empty:
+                return jsonify({'error': 'El archivo no tiene datos.'})
+
+            # Limitar filas para evitar abuso
+            if len(df) > 5000:
+                return jsonify({'error': 'El archivo tiene demasiadas filas. Máximo 5000.'})
 
         elif request.form.get('datos_manuales'):
             datos = json.loads(request.form.get('datos_manuales'))
             df = pd.DataFrame(datos)
+            if df.empty:
+                return jsonify({'error': 'No ingresaste ningún dato.'})
         else:
             return jsonify({'error': 'No se recibieron datos.'})
 
@@ -71,7 +100,11 @@ def analizar():
         return jsonify(resultado)
 
     except Exception as e:
-        return jsonify({'error': str(e)})
+        return jsonify({'error': 'Ocurrió un error al procesar el archivo. Verificá que el formato sea correcto.'})
+
+@app.errorhandler(413)
+def archivo_muy_grande(e):
+    return jsonify({'error': 'El archivo es demasiado grande. Máximo 5MB.'}), 413
 
 if __name__ == '__main__':
     app.run(debug=True)

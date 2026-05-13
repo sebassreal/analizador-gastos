@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ledgr° — Registro</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Inter',sans-serif;background:#050a12;color:#cde8ff;min-height:100vh;display:flex;align-items:center;justify-content:center;}
+.card{background:#070e1c;border:1px solid #00c46a30;border-radius:16px;padding:40px;width:100%;max-width:400px;box-shadow:0 0 30px #00c46a08,inset 0 0 30px #00000080;backdrop-filter:blur(12px);}
+.logo{font-size:28px;font-weight:700;letter-spacing:2px;color:#fff;text-align:center;margin-bottom:6px;}
+.logo span{color:#00c46a;}
+.tagline{font-size:10px;letter-spacing:4px;color:#2a5a8a;text-transform:uppercase;text-align:center;margin-bottom:32px;}
+.title{font-size:11px;letter-spacing:4px;color:#00c46a;text-transform:uppercase;margin-bottom:24px;}
+.field{margin-bottom:16px;}
+.field label{font-size:11px;letter-spacing:2px;color:#2a5a8a;text-transform:uppercase;display:block;margin-bottom:6px;}
+.field input{width:100%;background:#050a12;border:1px solid #1a4a6a;border-radius:8px;padding:12px;color:#cde8ff;font-size:14px;font-family:'Inter',sans-serif;transition:all 0.2s;}
+.field input:focus{outline:none;border-color:#00c46a;box-shadow:0 0 8px #00c46a20;}
+.btn{background:transparent;color:#00c46a;border:1.5px solid #00c46a;padding:14px 25px;border-radius:10px;cursor:pointer;font-size:14px;font-weight:600;width:100%;font-family:'Inter',sans-serif;letter-spacing:2px;transition:all 0.2s;text-transform:uppercase;box-shadow:0 0 16px #00c46a20;text-shadow:0 0 8px #00c46a;margin-top:8px;}
+.btn:hover{background:#00c46a15;box-shadow:0 0 28px #00c46a40;}
+.error{background:#ff000010;border:1px solid #ff000040;border-radius:8px;padding:10px 14px;font-size:12px;color:#ff6a6a;margin-top:12px;display:none;}
+.link{text-align:center;margin-top:20px;font-size:13px;color:#2a5a8a;}
+.link a{color:#00c46a;text-decoration:none;}
+.link a:hover{text-shadow:0 0 8px #00c46a;}
+.divider{border:none;border-top:1px solid #00c46a20;margin:24px 0;}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">Ledgr<span>°</span></div>
+  <div class="tagline">track what matters</div>
+  <div class="title">crear cuenta</div>
+  <div class="field">
+    <label>Nombre</label>
+    <input type="text" id="nombre" placeholder="Tu nombre">
+  </div>
+  <div class="field">
+    <label>Email</label>
+    <input type="email" id="email" placeholder="tu@email.com">
+  </div>
+  <div class="field">
+    <label>Contraseña</label>
+    <input type="password" id="password" placeholder="Mínimo 6 caracteres">
+  </div>
+  <div class="field">
+    <label>Repetir contraseña</label>
+    <input type="password" id="password2" placeholder="••••••••">
+  </div>
+  <button class="btn" onclick="doRegistro()">⚡ Crear cuenta</button>
+  <div class="error" id="error"></div>
+  <hr class="divider">
+  <div class="link">¿Ya tenés cuenta? <a href="/login">Iniciá sesión</a></div>
+  <div class="link" style="margin-top:10px;"><a href="/">Volver al inicio</a></div>
+</div>
+
+<script>
+async function doRegistro(){
+  const nombre=document.getElementById('nombre').value;
+  const email=document.getElementById('email').value;
+  const password=document.getElementById('password').value;
+  const password2=document.getElementById('password2').value;
+  if(!nombre||!email||!password||!password2){showError('Completá todos los campos.');return;}
+  if(password.length<6){showError('La contraseña debe tener al menos 6 caracteres.');return;}
+  if(password!==password2){showError('Las contraseñas no coinciden.');return;}
+  const fd=new FormData();
+  fd.append('nombre',nombre);fd.append('email',email);fd.append('password',password);
+  const r=await fetch('/registro',{method:'POST',body:fd});
+  const d=await r.json();
+  if(d.error){showError(d.error);}
+  else{window.location.href='/';}
+}
+function showError(msg){
+  const e=document.getElementById('error');
+  e.textContent=msg;e.style.display='block';
+}
+document.addEventListener('keydown',e=>{if(e.key==='Enter')doRegistro();});
+</script>
+</body>
+</html>

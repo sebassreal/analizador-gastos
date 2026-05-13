@@ -38,6 +38,12 @@ nav{background:#070e1c;border-bottom:1.5px solid #00c46a40;padding:16px 32px;dis
 .nav-logo{font-size:20px;font-weight:700;letter-spacing:2px;color:#fff;text-shadow:0 0 10px #ffffff30;}
 .nav-logo span{color:#00c46a;text-shadow:0 0 10px #00c46a;}
 .nav-tag{font-size:10px;letter-spacing:3px;color:#2a5a8a;text-transform:uppercase;}
+.nav-auth{display:flex;gap:10px;align-items:center;}
+.nav-btn{font-size:12px;letter-spacing:1px;color:#2a5a8a;text-decoration:none;padding:7px 14px;border:1px solid #1a4a6a;border-radius:8px;transition:all 0.2s;}
+.nav-btn:hover{border-color:#4a80c8;color:#4a80c8;}
+.nav-btn-green:hover{background:#00c46a15;box-shadow:0 0 12px #00c46a20;}
+.nav-welcome{font-size:13px;color:#cde8ff;letter-spacing:0.5px;}
+.nav-welcome strong{color:#00c46a;text-shadow:0 0 8px #00c46a40;}
 
 .hero{text-align:center;padding:64px 20px 40px;}
 .hero h1{font-size:42px;font-weight:700;color:#ffffff;line-height:1.2;margin-bottom:14px;text-shadow:0 0 30px #4a80c840;}
@@ -138,6 +144,15 @@ footer{text-align:center;padding:30px;font-size:11px;color:#1a4a6a;letter-spacin
 <nav>
   <div class="nav-logo">Ledgr<span>°</span></div>
   <div class="nav-tag">track what matters</div>
+<div class="nav-auth" id="navAuth">
+  {% if nombre %}
+    <span class="nav-welcome">Hola, <strong>{{ nombre }}</strong> 👋</span>
+    <a href="/logout" class="nav-btn">Cerrar sesión</a>
+  {% else %}
+    <a href="/login" class="nav-btn">Ingresar</a>
+    <a href="/registro" class="nav-btn-green">Registrarse</a>
+  {% endif %}
+</div>
 </nav>
 
 <div class="hero">

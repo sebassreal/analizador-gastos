@@ -13,8 +13,27 @@ from reportlab.lib.units import cm
 from reportlab.graphics.shapes import Drawing, Rect, Line, String
 from reportlab.graphics import renderPDF
 import os
-
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
+from models import db, User, Analisis
+import json
 app = Flask(__name__)
+app.config['SECRET_KEY'] = 'ledgr-secret-key-2025'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///ledgr.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db.init_app(app)
+
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+with app.app_context():
+    db.create_all()
 
 # Rate limiting
 limiter = Limiter(
@@ -413,7 +432,65 @@ def generar_pdf(resultado, por_categoria):
     c.save()
     buffer.seek(0)
     return buffer
+@app.route('/registro', methods=['GET', 'POST'])
+def registro():
+    if request.method == 'POST':
+        nombre = request.form.get('nombre')
+        email = request.form.get('email')
+        password = request.form.get('password')
+        
+        if User.query.filter_by(email=email).first():
+            return jsonify({'error': 'El email ya está registrado.'})
+        
+        nuevo_usuario = User(
+            nombre=nombre,
+            email=email,
+            password=generate_password_hash(password)
+        )
+        db.session.add(nuevo_usuario)
+        db.session.commit()
+        login_user(nuevo_usuario)
+        return jsonify({'ok': True, 'nombre': nombre})
+    return render_template('registro.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        password = request.form.get('password')
+        user = User.query.filter_by(email=email).first()
+        if not user or not check_password_hash(user.password, password):
+            return jsonify({'error': 'Email o contraseña incorrectos.'})
+        login_user(user)
+        return jsonify({'ok': True, 'nombre': user.nombre})
+    return render_template('login.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return jsonify({'ok': True})
+
+@app.route('/historial')
+@login_required
+def historial():
+    analisis = Analisis.query.filter_by(user_id=current_user.id).order_by(Analisis.fecha.desc()).limit(10).all()
+    resultado = []
+    for a in analisis:
+        resultado.append({
+            'id': a.id,
+            'fecha': a.fecha.strftime('%d/%m/%Y %H:%M'),
+            'total': a.total,
+            'cantidad_gastos': a.cantidad_gastos,
+            'categoria_max': a.categoria_max,
+            'monto_max': a.monto_max,
+            'por_categoria': json.loads(a.por_categoria)
+        })
+    return jsonify(resultado)
 @app.route('/')
+def index():
+    nombre = current_user.nombre if current_user.is_authenticated else None
+    return render_template('index.html', nombre=nombre)
 def index():
     return render_template('index.html')
 @limiter.limit("10 per minute")
@@ -467,6 +544,21 @@ def analizar():
             return jsonify({'error': 'No se recibieron datos.'})
 
         resultado = analizar_gastos(df)
+
+        # Guardar en historial si está logueado
+        if current_user.is_authenticated:
+            nuevo = Analisis(
+                user_id=current_user.id,
+                total=resultado['total'],
+                cantidad_gastos=resultado['cantidad_gastos'],
+                gasto_promedio=resultado['gasto_promedio'],
+                categoria_max=resultado['categoria_max'],
+                monto_max=resultado['monto_max'],
+                por_categoria=json.dumps(resultado['por_categoria'])
+            )
+            db.session.add(nuevo)
+            db.session.commit()
+
         return jsonify(resultado)
 
     except Exception as e:

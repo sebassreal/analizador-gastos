@@ -568,6 +568,64 @@ def analizar():
 def archivo_muy_grande(e):
     return jsonify({'error': 'El archivo es demasiado grande. Máximo 5MB.'}), 413
 @limiter.limit("10 per minute")
+@app.route('/comparar', methods=['POST'])
+@limiter.limit("10 per minute")
+def comparar():
+    try:
+        def leer_archivo(key):
+            archivo = request.files.get(key)
+            if not archivo or archivo.filename == '':
+                return None
+            nombre = archivo.filename.lower()
+            if not extension_permitida(nombre):
+                return None
+            contenido = archivo.read()
+            if nombre.endswith('.xlsx') or nombre.endswith('.xls'):
+                return pd.read_excel(io.BytesIO(contenido))
+            elif nombre.endswith('.csv'):
+                return pd.read_csv(io.BytesIO(contenido))
+            elif nombre.endswith('.pdf'):
+                tablas = []
+                with pdfplumber.open(io.BytesIO(contenido)) as pdf:
+                    for page in pdf.pages:
+                        tabla = page.extract_table()
+                        if tabla:
+                            tablas.extend(tabla)
+                if not tablas:
+                    return None
+                return pd.DataFrame(tablas[1:], columns=tablas[0])
+            return None
+
+        df1 = leer_archivo('archivo1')
+        df2 = leer_archivo('archivo2')
+
+        if df1 is None or df2 is None:
+            return jsonify({'error': 'Necesitás subir dos archivos válidos.'})
+
+        r1 = analizar_gastos(df1)
+        r2 = analizar_gastos(df2)
+
+        # Comparación por categoría
+        cats = set(list(r1['por_categoria'].keys()) + list(r2['por_categoria'].keys()))
+        comparacion = {}
+        for cat in cats:
+            m1 = r1['por_categoria'].get(cat, 0)
+            m2 = r2['por_categoria'].get(cat, 0)
+            diff = m2 - m1
+            pct = round((diff / m1 * 100), 1) if m1 > 0 else 100
+            comparacion[cat] = {
+                'mes1': m1, 'mes2': m2,
+                'diff': diff, 'pct': pct
+            }
+
+        return jsonify({
+            'mes1': r1,
+            'mes2': r2,
+            'comparacion': comparacion
+        })
+
+    except Exception as e:
+        return jsonify({'error': 'Error al comparar los archivos.'})
 @app.route('/descargar-pdf', methods=['POST'])
 
 def descargar_pdf():

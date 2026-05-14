@@ -109,6 +109,15 @@ input[type=file]{display:none;}
 .tip{background:#070e1c;border:1px solid #00c46a20;border-radius:12px;padding:18px;}
 .tip-icon{font-size:22px;margin-bottom:8px;}
 .tip-title{font-size:12px;font-weight:500;color:#4a9abc;margin-bottom:4px;letter-spacing:1px;}
+.tip-text .main-tabs{display:flex;gap:10px;margin-bottom:20px;}
+.main-tab{flex:1;padding:13px;border:1px solid #1a4a6a;border-radius:10px;cursor:pointer;background:transparent;color:#4a80a8;font-size:13px;font-family:'Inter',sans-serif;transition:all 0.2s;letter-spacing:1px;}
+.main-tab.active{background:#00c46a10;border-color:#00c46a;color:#00c46a;box-shadow:0 0 12px #00c46a20;}
+.main-tab:hover:not(.active){border-color:#4a80a8;color:#8abcdc;}
+.main-sec{display:none;}
+.main-sec.on{display:block;}
+.diff-pos{color:#ff6a6a;font-weight:500;}
+.diff-pos{color:#ff6a6a;font-weight:500;}
+.diff-neg{color:#00c46a;font-weight:500;}
 .tip-text{font-size:12px;color:#2a5a7a;line-height:1.6;}
 
 footer{text-align:center;padding:30px;font-size:11px;color:#1a4a6a;letter-spacing:3px;border-top:1px solid #00c46a20;}
@@ -166,7 +175,13 @@ footer{text-align:center;padding:30px;font-size:11px;color:#1a4a6a;letter-spacin
     <div class="tip"><div class="tip-icon">🔒</div><div class="tip-title">100% privado</div><div class="tip-text">Tu información no se guarda en ningún servidor. Todo se procesa localmente.</div></div>
     <div class="tip"><div class="tip-icon">📁</div><div class="tip-title">Multi-formato</div><div class="tip-text">Compatible con Excel, CSV y PDF. O cargá tus gastos manualmente.</div></div>
   </div>
+<!-- TABS PRINCIPALES -->
+  <div class="main-tabs">
+    <button class="main-tab active" onclick="switchMain('analizar', this)">📊 Analizar</button>
+    <button class="main-tab" onclick="switchMain('comparar', this)">⚖ Comparar meses</button>
+  </div>
 
+  <div id="main-analizar" class="main-sec on">
   <div class="card">
     <div class="card-title">cargá tus gastos</div>
     <div class="tabs">
@@ -203,7 +218,51 @@ footer{text-align:center;padding:30px;font-size:11px;color:#1a4a6a;letter-spacin
     </div>
     <div class="loading" id="loading">⏳ analizando...</div>
   </div>
+</div><!-- fin main-analizar -->
 
+  <!-- SECCIÓN COMPARAR -->
+  <div id="main-comparar" class="main-sec">
+    <div class="card">
+      <div class="card-title">comparar dos meses</div>
+      <p style="font-size:13px;color:#4a80a8;margin-bottom:20px;">Subí dos archivos para ver cómo cambiaron tus gastos de un mes a otro.</p>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+        <div>
+          <div style="font-size:11px;letter-spacing:2px;color:#2a5a8a;text-transform:uppercase;margin-bottom:8px;">Mes 1</div>
+          <div class="drop" onclick="document.getElementById('f1').click()">
+            <div class="drop-icon">📂</div>
+            <p><strong>Subir mes anterior</strong></p>
+            <p>Excel · CSV · PDF</p>
+          </div>
+          <input type="file" id="f1" accept=".xlsx,.xls,.csv,.pdf" onchange="showNameComp(this,'fn1')">
+          <p class="file-name" id="fn1"></p>
+        </div>
+        <div>
+          <div style="font-size:11px;letter-spacing:2px;color:#2a5a8a;text-transform:uppercase;margin-bottom:8px;">Mes 2</div>
+          <div class="drop" onclick="document.getElementById('f2').click()">
+            <div class="drop-icon">📂</div>
+            <p><strong>Subir mes actual</strong></p>
+            <p>Excel · CSV · PDF</p>
+          </div>
+          <input type="file" id="f2" accept=".xlsx,.xls,.csv,.pdf" onchange="showNameComp(this,'fn2')">
+          <p class="file-name" id="fn2"></p>
+        </div>
+      </div>
+      <button class="btn" onclick="compareFiles()">⚡ Comparar meses</button>
+      <div class="loading" id="loading-comp">⏳ comparando...</div>
+    </div>
+
+    <div class="results" id="results-comp">
+      <div class="card">
+        <div class="card-title">resumen comparativo</div>
+        <div class="stats" id="stats-comp"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">variación por categoría</div>
+        <div id="bars-comp"></div>
+      </div>
+    </div>
+  </div>
   <div class="results" id="results">
     <div class="card">
       <div class="card-title">resumen</div>
@@ -449,7 +508,73 @@ async function descargarPDF(){
   URL.revokeObjectURL(url);
 }
 
-  
+  function switchMain(tab, btn){
+  document.querySelectorAll('.main-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.main-sec').forEach(s=>s.classList.remove('on'));
+  document.getElementById('main-'+tab).classList.add('on');
+  btn.classList.add('active');
+}
+
+function showNameComp(input, id){
+  const p=document.getElementById(id);
+  if(input.files[0]){p.textContent='✓ '+input.files[0].name;p.style.display='block';}
+}
+
+async function compareFiles(){
+  const f1=document.getElementById('f1').files[0];
+  const f2=document.getElementById('f2').files[0];
+  if(!f1||!f2){alert('Subí los dos archivos para comparar.');return;}
+  const fd=new FormData();
+  fd.append('archivo1',f1);fd.append('archivo2',f2);
+  document.getElementById('loading-comp').style.display='block';
+  const r=await fetch('/comparar',{method:'POST',body:fd});
+  const d=await r.json();
+  document.getElementById('loading-comp').style.display='none';
+  if(d.error){alert('Error: '+d.error);return;}
+  showComparison(d);
+}
+
+function showComparison(data){
+  const m1=data.mes1;const m2=data.mes2;
+  const diffTotal=m2.total-m1.total;
+  const diffPct=Math.round((diffTotal/m1.total)*100);
+  const arrow=diffTotal>0?'↑':'↓';
+  const color=diffTotal>0?'#ff6a6a':'#00c46a';
+
+  document.getElementById('stats-comp').innerHTML=`
+    <div class="stat"><div class="stat-num">$${m1.total.toLocaleString('es-AR')}</div><div class="stat-label">Mes 1</div></div>
+    <div class="stat"><div class="stat-num">$${m2.total.toLocaleString('es-AR')}</div><div class="stat-label">Mes 2</div></div>
+    <div class="stat"><div class="stat-num" style="color:${color}">${arrow} ${Math.abs(diffPct)}%</div><div class="stat-label">Variación</div></div>
+  `;
+
+  let html='';
+  for(const [cat,v] of Object.entries(data.comparacion)){
+    const arrow=v.diff>0?'↑':'↓';
+    const cls=v.diff>0?'diff-pos':'diff-neg';
+    const maxW=Math.max(v.mes1,v.mes2);
+    html+=`
+      <div class="bar-row">
+        <div class="bar-header">
+          <span class="bar-cat">${cat}</span>
+          <span class="${cls}">${arrow} ${Math.abs(v.pct)}% ($${Math.abs(v.diff).toLocaleString('es-AR')})</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:4px;">
+          <div>
+            <div style="font-size:10px;color:#2a5a8a;margin-bottom:3px;">Mes 1: $${v.mes1.toLocaleString('es-AR')}</div>
+            <div class="bar-track"><div class="bar-fill" style="width:${Math.round(v.mes1/maxW*100)}%;background:#4a80c8;box-shadow:0 0 6px #4a80c860"></div></div>
+          </div>
+          <div>
+            <div style="font-size:10px;color:#2a5a8a;margin-bottom:3px;">Mes 2: $${v.mes2.toLocaleString('es-AR')}</div>
+            <div class="bar-track"><div class="bar-fill" style="width:${Math.round(v.mes2/maxW*100)}%;background:#00c46a;box-shadow:0 0 6px #00c46a60"></div></div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  document.getElementById('bars-comp').innerHTML=html;
+  document.getElementById('results-comp').style.display='block';
+  document.getElementById('results-comp').scrollIntoView({behavior:'smooth'});
+}
 
 </script>
 </body>

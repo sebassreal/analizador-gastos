@@ -487,6 +487,13 @@ def historial():
             'por_categoria': json.loads(a.por_categoria)
         })
     return jsonify(resultado)
+@app.route('/manifest.json')
+def manifest():
+    return send_file('manifest.json', mimetype='application/manifest+json')
+
+@app.route('/sw.js')
+def service_worker():
+    return send_file('static/sw.js', mimetype='application/javascript')
 @app.route('/')
 def index():
     nombre = current_user.nombre if current_user.is_authenticated else None

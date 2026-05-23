@@ -19,7 +19,8 @@ from models import db, User, Analisis
 import json
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'ledgr-secret-key-2025'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///ledgr.db'
+import os
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///ledgr.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)

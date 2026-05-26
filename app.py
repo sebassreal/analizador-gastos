@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import Flask, render_template, request, jsonify, send_file, redirect
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_wtf.csrf import CSRFProtect
@@ -23,6 +23,15 @@ app.config['SECRET_KEY'] = 'ledgr-secret-key-2025'
 import os
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///ledgr.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['MAIL_SERVER'] = 'smtp.resend.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = 'resend'
+app.config['MAIL_PASSWORD'] = os.environ.get('RESEND_API_KEY', 're_LEeEBT8i_AjkURXiYs6L82Gqbt6bPj1Lv')
+app.config['MAIL_DEFAULT_SENDER'] = 'onboarding@resend.dev'
+
+from flask_mail import Mail
+mail = Mail(app)
 csrf = CSRFProtect(app)
 csrf.exempt('analizar')
 csrf.exempt('comparar')
@@ -39,6 +48,14 @@ def load_user(user_id):
 
 with app.app_context():
     db.create_all()
+    # Migración manual de columnas nuevas
+    try:
+        with db.engine.connect() as conn:
+            conn.execute(db.text('ALTER TABLE "user" ADD COLUMN email_verificado BOOLEAN DEFAULT FALSE'))
+            conn.execute(db.text('ALTER TABLE "user" ADD COLUMN token_verificacion VARCHAR(100)'))
+            conn.commit()
+    except Exception:
+        pass
 
 # Rate limiting
 limiter = Limiter(
@@ -443,21 +460,61 @@ def registro():
         nombre = request.form.get('nombre')
         email = request.form.get('email')
         password = request.form.get('password')
-        
+
         if User.query.filter_by(email=email).first():
             return jsonify({'error': 'El email ya está registrado.'})
-        
+
+        import secrets
+        token = secrets.token_urlsafe(32)
+
         nuevo_usuario = User(
             nombre=nombre,
             email=email,
-            password=generate_password_hash(password)
+            password=generate_password_hash(password),
+            email_verificado=False,
+            token_verificacion=token
         )
         db.session.add(nuevo_usuario)
         db.session.commit()
-        login_user(nuevo_usuario)
-        return jsonify({'ok': True, 'nombre': nombre})
+
+        # Enviar email de verificación
+        try:
+            from flask_mail import Message
+            link = f"https://ledgr-t1o0.onrender.com/verificar/{token}"
+            msg = Message(
+                subject='Verificá tu cuenta en Ledgr°',
+                recipients=[email],
+                html=f'''
+                <div style="background:#050a12;padding:40px;font-family:Inter,sans-serif;color:#cde8ff;">
+                    <h1 style="color:#00c46a;letter-spacing:2px;">Ledgr°</h1>
+                    <p style="color:#6a9abc;font-size:14px;">track what matters</p>
+                    <hr style="border-color:#00c46a30;margin:20px 0;">
+                    <p>Hola <strong style="color:#fff">{nombre}</strong>, gracias por registrarte.</p>
+                    <p style="margin-top:16px;">Para activar tu cuenta hacé clic en el botón:</p>
+                    <a href="{link}" style="display:inline-block;margin-top:20px;background:transparent;color:#00c46a;border:1.5px solid #00c46a;padding:12px 24px;border-radius:8px;text-decoration:none;letter-spacing:2px;font-size:13px;">
+                        ⚡ VERIFICAR CUENTA
+                    </a>
+                    <p style="margin-top:24px;font-size:12px;color:#2a5a7a;">Si no creaste esta cuenta podés ignorar este mensaje.</p>
+                </div>
+                '''
+            )
+            mail.send(msg)
+        except Exception as e:
+            print(f"Error enviando email: {e}")
+
+        return jsonify({'ok': True, 'nombre': nombre, 'verificacion': True})
     from flask_wtf.csrf import generate_csrf
     return render_template('registro.html', csrf_token=generate_csrf())
+@app.route('/verificar/<token>')
+def verificar_email(token):
+    user = User.query.filter_by(token_verificacion=token).first()
+    if not user:
+        return '<h1 style="color:red">Token inválido</h1>'
+    user.email_verificado = True
+    user.token_verificacion = None
+    db.session.commit()
+    login_user(user)
+    return redirect('/')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():

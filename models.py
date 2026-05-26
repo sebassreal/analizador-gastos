@@ -10,6 +10,8 @@ class User(UserMixin, db.Model):
     password = db.Column(db.String(200), nullable=False)
     nombre = db.Column(db.String(100), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    email_verificado = db.Column(db.Boolean, default=False)
+    token_verificacion = db.Column(db.String(100), nullable=True)
     analisis = db.relationship('Analisis', backref='user', lazy=True)
 
 class Analisis(db.Model):

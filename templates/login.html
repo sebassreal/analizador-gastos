@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ledgr° — Iniciar sesión</title>
+<meta name="csrf-token" content="{{ csrf_token }}">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -53,7 +54,7 @@ async function doLogin(){
   if(!email||!password){showError('Completá todos los campos.');return;}
   const fd=new FormData();
   fd.append('email',email);fd.append('password',password);
-  const r=await fetch('/login',{method:'POST',body:fd});
+  const r=await fetch('/login',{method:'POST',body:fd,headers:{'X-CSRFToken':document.querySelector('meta[name="csrf-token"]').getAttribute('content')}});
   const d=await r.json();
   if(d.error){showError(d.error);}
   else{window.location.href='/';}

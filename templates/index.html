@@ -10,6 +10,7 @@
 <meta name="apple-mobile-web-app-title" content="Ledgr°">
 <link rel="apple-touch-icon" href="/static/icon-192.png">
 <title>Ledgr° — Track what matters</title>
+<meta name="csrf-token" content="{{ csrf_token }}">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 <script src="https://unpkg.com/lucide@latest"></script>
@@ -220,7 +221,6 @@ footer{text-align:center;padding:30px;font-size:11px;color:#1a4a6a;letter-spacin
       <div class="chart-title">ranking de gastos</div>
       <div id="bar-chart"></div>
     </div>
-      </div>
       <div class="charts-grid">
         <div class="chart-box">
           <div class="chart-title">mapa de gastos</div>
@@ -319,13 +319,13 @@ function switchTab(tab,btn){
 function showName(input){const p=document.getElementById('fname');if(input.files[0]){p.textContent='✓ '+input.files[0].name;p.style.display='block';}}
 function showNameComp(input,id){const p=document.getElementById(id);if(input.files[0]){p.textContent='✓ '+input.files[0].name;p.style.display='block';}}
 function addRow(){const tb=document.getElementById('trows');const tr=document.createElement('tr');tr.innerHTML='<td><input type="text" placeholder="01/03/2025"></td><td><input type="text" placeholder="Descripción"></td><td><input type="text" placeholder="Categoría"></td><td><input type="number" placeholder="0"></td>';tb.appendChild(tr);}
-
+function getCsrf(){return document.querySelector('meta[name="csrf-token"]').getAttribute('content');}
 async function analyzeFile(){
   const f=document.getElementById('finput').files[0];
   if(!f){alert('Seleccioná un archivo primero');return;}
   const fd=new FormData();fd.append('archivo',f);
   document.getElementById('loading').style.display='block';
-  const r=await fetch('/analizar',{method:'POST',body:fd});
+  const r=await fetch('/analizar',{method:'POST',body:fd,headers:{'X-CSRFToken':getCsrf()}});
   const d=await r.json();
   document.getElementById('loading').style.display='none';
   showResults(d);
@@ -451,7 +451,7 @@ async function descargarPDF(){
   if(!ultimoResultado)return;
   const fd=new FormData();
   fd.append('resultado',JSON.stringify(ultimoResultado));
-  const r=await fetch('/descargar-pdf',{method:'POST',body:fd});
+  const r=await fetch('/descargar-pdf',{method:'POST',body:fd,headers:{'X-CSRFToken':getCsrf()}});
   const blob=await r.blob();
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
@@ -466,7 +466,7 @@ async function compareFiles(){
   const fd=new FormData();
   fd.append('archivo1',f1);fd.append('archivo2',f2);
   document.getElementById('loading-comp').style.display='block';
-  const r=await fetch('/comparar',{method:'POST',body:fd});
+  const r=await fetch('/comparar',{method:'POST',body:fd,headers:{'X-CSRFToken':getCsrf()}});
   const d=await r.json();
   document.getElementById('loading-comp').style.display='none';
   if(d.error){alert('Error: '+d.error);return;}

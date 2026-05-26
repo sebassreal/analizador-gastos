@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, jsonify, send_file
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from flask_wtf.csrf import CSRFProtect
 import pandas as pd
 import pdfplumber
 import json
@@ -22,7 +23,10 @@ app.config['SECRET_KEY'] = 'ledgr-secret-key-2025'
 import os
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///ledgr.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
+csrf = CSRFProtect(app)
+csrf.exempt('analizar')
+csrf.exempt('comparar')
+csrf.exempt('descargar_pdf')
 db.init_app(app)
 
 login_manager = LoginManager()
@@ -452,7 +456,8 @@ def registro():
         db.session.commit()
         login_user(nuevo_usuario)
         return jsonify({'ok': True, 'nombre': nombre})
-    return render_template('registro.html')
+    from flask_wtf.csrf import generate_csrf
+    return render_template('registro.html', csrf_token=generate_csrf())
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -464,7 +469,8 @@ def login():
             return jsonify({'error': 'Email o contraseña incorrectos.'})
         login_user(user)
         return jsonify({'ok': True, 'nombre': user.nombre})
-    return render_template('login.html')
+    from flask_wtf.csrf import generate_csrf
+    return render_template('login.html', csrf_token=generate_csrf())
 
 @app.route('/logout')
 @login_required
@@ -496,12 +502,16 @@ def manifest():
 def service_worker():
     return send_file('static/sw.js', mimetype='application/javascript')
 @app.route('/')
+@app.route('/')
 def index():
+    from flask_wtf.csrf import generate_csrf
     nombre = current_user.nombre if current_user.is_authenticated else None
-    return render_template('index.html', nombre=nombre)
+    csrf_token = generate_csrf()
+    return render_template('index.html', nombre=nombre, csrf_token=csrf_token)
 def index():
     return render_template('index.html')
 @limiter.limit("10 per minute")
+@csrf.exempt
 @app.route('/analizar', methods=['POST'])
 def analizar():
     try:
@@ -576,6 +586,7 @@ def analizar():
 def archivo_muy_grande(e):
     return jsonify({'error': 'El archivo es demasiado grande. Máximo 5MB.'}), 413
 @limiter.limit("10 per minute")
+@csrf.exempt
 @app.route('/comparar', methods=['POST'])
 @limiter.limit("10 per minute")
 def comparar():
@@ -633,9 +644,11 @@ def comparar():
         })
 
     except Exception as e:
-        return jsonify({'error': 'Error al comparar los archivos.'})
-@app.route('/descargar-pdf', methods=['POST'])
+        return jsonify({'error': 'Error al comparar los archivos.'}) 
+    
 
+@csrf.exempt
+@app.route('/descargar-pdf', methods=['POST'])
 def descargar_pdf():
     try:
         datos = json.loads(request.form.get('resultado'))

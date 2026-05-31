@@ -116,6 +116,9 @@ input[type=file]{display:none;}
 .alerta-warning strong{color:#ff6a6a;}
 .alerta-info{background:#4af0ff10;border:1px solid #4af0ff30;color:#8abcdc;}
 .alerta-info strong{color:#4af0ff;}
+.recomendacion-item{background:#00c46a08;border:1px solid #00c46a30;border-radius:10px;padding:12px 16px;margin-top:10px;font-size:13px;color:#6abcaa;line-height:1.6;}
+.recomendacion-item strong{color:#00c46a;}
+.recomendaciones-title{font-size:11px;letter-spacing:3px;color:#00c46a;text-transform:uppercase;margin-top:20px;margin-bottom:6px;}
 footer{text-align:center;padding:30px;font-size:11px;color:#1a4a6a;letter-spacing:3px;border-top:1px solid #00c46a20;}
 @media(max-width:900px){
   .stats{grid-template-columns:1fr;}
@@ -218,6 +221,7 @@ footer{text-align:center;padding:30px;font-size:11px;color:#1a4a6a;letter-spacin
         <div class="card-title">resumen</div>
         <div class="stats" id="stats"></div>
         <div id="alertas-container"></div>
+        <div id="recomendaciones-container"></div>
       </div>
       <div class="card">
       <div class="chart-title">distribución por categoría</div>
@@ -456,6 +460,15 @@ function showResults(data){
     });
   }
   document.getElementById('alertas-container').innerHTML=alertasHTML;
+  // Mostrar recomendaciones
+  let recoHTML='';
+  if(data.recomendaciones && data.recomendaciones.length>0){
+    recoHTML+='<div class="recomendaciones-title">💡 Recomendaciones</div>';
+    data.recomendaciones.forEach(r=>{
+      recoHTML+=`<div class="recomendacion-item">${r}</div>`;
+    });
+  }
+  document.getElementById('recomendaciones-container').innerHTML=recoHTML;
   document.getElementById('results').style.display='block';
   document.getElementById('results').scrollIntoView({behavior:'smooth'});
 }

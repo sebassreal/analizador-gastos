@@ -158,6 +158,36 @@ def analizar_gastos(df):
             'tipo': 'info', 
             'mensaje': f'🎬 Gastás bastante en Entretenimiento (${entret:,}). ¿Hay suscripciones que no usás?'
         })
+        # Recomendaciones inteligentes
+    recomendaciones = []
+
+    # Si supermercado es muy alto
+    super_monto = por_categoria.get('Supermercado', 0)
+    if super_monto > 0 and (super_monto / total) * 100 > 25:
+        ahorro = int(super_monto * 0.15)
+        recomendaciones.append(f'🛒 Si reducís un 15% tus gastos en Supermercado podrías ahorrar <strong>${ahorro:,}</strong> por mes.')
+
+    # Si entretenimiento es alto
+    entret = por_categoria.get('Entretenimiento', 0)
+    if entret > 0 and (entret / total) * 100 > 15:
+        ahorro = int(entret * 0.3)
+        recomendaciones.append(f'🎬 Revisá tus suscripciones de entretenimiento. Cancelar las que no usás podría ahorrarte <strong>${ahorro:,}</strong>.')
+
+    # Si comida fuera es alto
+    comida = por_categoria.get('Comida', 0)
+    if comida > 0 and (comida / total) * 100 > 20:
+        ahorro = int(comida * 0.4)
+        recomendaciones.append(f'🍔 Comer más en casa en vez de delivery o restaurantes podría ahorrarte hasta <strong>${ahorro:,}</strong> por mes.')
+
+    # Si transporte es alto
+    transp = por_categoria.get('Transporte', 0)
+    if transp > 0 and (transp / total) * 100 > 20:
+        ahorro = int(transp * 0.2)
+        recomendaciones.append(f'🚗 Combiná viajes en auto con transporte público para ahorrar hasta <strong>${ahorro:,}</strong>.')
+
+    # Recomendación de ahorro general
+    ahorro_general = int(total * 0.1)
+    recomendaciones.append(f'💰 Si ahorrás el 10% de tus gastos totales estarías guardando <strong>${ahorro_general:,}</strong> por mes.')
     return {
         'total': int(total),
         'por_categoria': {k: int(v) for k, v in por_categoria.items()},
@@ -165,8 +195,10 @@ def analizar_gastos(df):
         'monto_max': int(por_categoria[categoria_max]),
         'cantidad_gastos': len(df),
         'gasto_promedio': int(total / len(df)) if len(df) > 0 else 0,
-        'alertas': alertas
+        'alertas': alertas,
+        'recomendaciones': recomendaciones
     }
+    
 
 def generar_pdf(resultado, por_categoria):
     buffer = io.BytesIO()

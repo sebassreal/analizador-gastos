@@ -111,6 +111,11 @@ input[type=file]{display:none;}
 .tip-icon{font-size:22px;margin-bottom:8px;}
 .tip-title{font-size:12px;font-weight:500;color:#4a9abc;margin-bottom:4px;letter-spacing:1px;}
 .tip-text{font-size:12px;color:#2a5a7a;line-height:1.6;}
+.alerta-item{border-radius:10px;padding:12px 16px;margin-top:10px;font-size:13px;line-height:1.6;display:flex;align-items:flex-start;gap:10px;}
+.alerta-warning{background:#ff6a6a10;border:1px solid #ff6a6a30;color:#ff9a9a;}
+.alerta-warning strong{color:#ff6a6a;}
+.alerta-info{background:#4af0ff10;border:1px solid #4af0ff30;color:#8abcdc;}
+.alerta-info strong{color:#4af0ff;}
 footer{text-align:center;padding:30px;font-size:11px;color:#1a4a6a;letter-spacing:3px;border-top:1px solid #00c46a20;}
 @media(max-width:900px){
   .stats{grid-template-columns:1fr;}
@@ -212,6 +217,7 @@ footer{text-align:center;padding:30px;font-size:11px;color:#1a4a6a;letter-spacin
       <div class="card">
         <div class="card-title">resumen</div>
         <div class="stats" id="stats"></div>
+        <div id="alertas-container"></div>
       </div>
       <div class="card">
       <div class="chart-title">distribución por categoría</div>
@@ -286,7 +292,6 @@ footer{text-align:center;padding:30px;font-size:11px;color:#1a4a6a;letter-spacin
     </div>
   </div>
 </div>
-
 <footer>Ledgr° &nbsp;·&nbsp; track what matters &nbsp;·&nbsp; 2025</footer>
 </div>
 
@@ -443,6 +448,14 @@ function showResults(data){
   });
   document.getElementById('bars').innerHTML=html;
   document.getElementById('alertMsg').innerHTML=`⚠️ Tu mayor gasto fue en <strong>${data.categoria_max}</strong> con <strong>$${data.monto_max.toLocaleString('es-AR')}</strong>. Revisá si podés optimizar esa categoría.`;
+  // Mostrar alertas inteligentes
+  let alertasHTML='';
+  if(data.alertas && data.alertas.length>0){
+    data.alertas.forEach(a=>{
+      alertasHTML+=`<div class="alerta-item alerta-${a.tipo}">${a.mensaje}</div>`;
+    });
+  }
+  document.getElementById('alertas-container').innerHTML=alertasHTML;
   document.getElementById('results').style.display='block';
   document.getElementById('results').scrollIntoView({behavior:'smooth'});
 }

@@ -6,6 +6,7 @@ import pandas as pd
 import pdfplumber
 import json
 import io
+from categorias import categorizar
 from reportlab.lib.pagesizes import A4
 from reportlab.lib import colors
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
@@ -91,6 +92,12 @@ def analizar_gastos(df):
     col_cat = next((c for c in df.columns if 'categ' in c.lower()), None)
     col_desc = next((c for c in df.columns if 'desc' in c.lower() or 'concepto' in c.lower()), None)
 
+    # Categorización automática si no hay columna de categoría
+    if not col_cat and col_desc:
+        df['Categoria_Auto'] = df[col_desc].apply(categorizar)
+        col_cat = 'Categoria_Auto'
+    col_desc = next((c for c in df.columns if 'desc' in c.lower() or 'concepto' in c.lower()), None)
+
     df[col_monto] = pd.to_numeric(df[col_monto], errors='coerce').fillna(0)
 
     if col_cat:
@@ -102,15 +109,65 @@ def analizar_gastos(df):
 
     total = df[col_monto].sum()
     categoria_max = max(por_categoria, key=por_categoria.get)
-
+# Alertas inteligentes
+    alertas = []
+    # Alertas inteligentes
+    alertas = []
+    
+    for cat, monto in por_categoria.items():
+        pct = (monto / total) * 100
+        if pct > 10:
+            alertas.append({
+                'tipo': 'warning',
+                'mensaje': f'⚠️ <strong>{cat}</strong> representa el {round(pct)}% de tus gastos totales.'
+            })
+    
+    if len(por_categoria) > 3:
+        alertas.append({
+            'tipo': 'info',
+            'mensaje': f'💡 Tenés gastos distribuidos en <strong>{len(por_categoria)}</strong> categorías distintas.'
+        })
+    
+    cat_mayor = max(por_categoria, key=por_categoria.get)
+    monto_mayor = por_categoria[cat_mayor]
+    alertas.append({
+        'tipo': 'warning',
+        'mensaje': f'📊 Tu mayor gasto es <strong>{cat_mayor}</strong> con <strong>${monto_mayor:,}</strong>.'
+    })
+    # Categoría que supera el 40% del total
+    for cat, monto in por_categoria.items():
+        pct = (monto / total) * 100
+        if pct > 40:
+            alertas.append({
+                'tipo': 'warning',
+                'mensaje': f'⚠️ {cat} representa el {round(pct)}% de tus gastos totales. Considerá reducirlo.'
+            })
+    
+    # Gasto promedio muy alto
+    gasto_promedio = int(total / len(df)) if len(df) > 0 else 0
+    if gasto_promedio > total * 0.15:
+        alertas.append({
+            'tipo': 'info',
+            'mensaje': f'💡 Tu gasto promedio por transacción es alto (${gasto_promedio:,}). Revisá tus gastos grandes.'
+        })
+    
+    # Muchas transacciones en entretenimiento
+    entret = por_categoria.get('Entretenimiento', 0)
+    if entret > 0 and (entret / total) * 100 > 20:
+        alertas.append({
+            'tipo': 'info', 
+            'mensaje': f'🎬 Gastás bastante en Entretenimiento (${entret:,}). ¿Hay suscripciones que no usás?'
+        })
     return {
         'total': int(total),
         'por_categoria': {k: int(v) for k, v in por_categoria.items()},
         'categoria_max': categoria_max,
         'monto_max': int(por_categoria[categoria_max]),
         'cantidad_gastos': len(df),
-        'gasto_promedio': int(total / len(df)) if len(df) > 0 else 0
+        'gasto_promedio': int(total / len(df)) if len(df) > 0 else 0,
+        'alertas': alertas
     }
+
 def generar_pdf(resultado, por_categoria):
     buffer = io.BytesIO()
     from reportlab.pdfgen import canvas as pdf_canvas

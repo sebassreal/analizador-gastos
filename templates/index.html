@@ -175,9 +175,10 @@ footer{text-align:center;padding:30px;font-size:11px;color:#1a4a6a;letter-spacin
     <div class="tip"><div class="tip-icon">📁</div><div class="tip-title">Multi-formato</div><div class="tip-text">Compatible con Excel, CSV y PDF. O cargá tus gastos manualmente.</div></div>
   </div>
 
-  <div class="main-tabs">
+ <div class="main-tabs">
     <button class="main-tab active" onclick="switchMain('analizar',this)">📊 Analizar</button>
     <button class="main-tab" onclick="switchMain('comparar',this)">⚖ Comparar meses</button>
+    <button class="main-tab" onclick="switchMain('tendencias',this)">📈 Tendencias</button>
   </div>
 
   <div id="main-analizar" class="main-sec on">
@@ -296,6 +297,28 @@ footer{text-align:center;padding:30px;font-size:11px;color:#1a4a6a;letter-spacin
     </div>
   </div>
 </div>
+<div id="main-tendencias" class="main-sec">
+    <div class="card">
+      <div class="card-title">análisis de tendencias</div>
+      <p style="font-size:13px;color:#4a80a8;margin-bottom:20px;">Evolución de tus gastos a lo largo del tiempo basada en tu historial.</p>
+      <button class="btn" onclick="cargarTendencias()">📈 Ver mis tendencias</button>
+      <div class="loading" id="loading-tend">⏳ cargando tendencias...</div>
+    </div>
+    <div class="results" id="results-tend">
+      <div class="card">
+        <div class="card-title">resumen de tendencia</div>
+        <div class="stats" id="stats-tend"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">evolución del gasto total</div>
+        <div id="tend-line-chart"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">evolución por categoría</div>
+        <div id="tend-cat-chart"></div>
+      </div>
+    </div>
+  </div>
 <footer>Ledgr° &nbsp;·&nbsp; track what matters &nbsp;·&nbsp; 2025</footer>
 </div>
 
@@ -521,6 +544,68 @@ function showComparison(data){
   document.getElementById('results-comp').style.display='block';
   document.getElementById('results-comp').scrollIntoView({behavior:'smooth'});
 }
+async function cargarTendencias(){
+  document.getElementById('loading-tend').style.display='block';
+  document.getElementById('results-tend').style.display='none';
+  const r=await fetch('/tendencias');
+  const d=await r.json();
+  document.getElementById('loading-tend').style.display='none';
+  if(d.error){alert(d.error);return;}
+  mostrarTendencias(d);
+}
+
+function mostrarTendencias(data){
+  const arrow=data.tendencia==='al alza'?'↑':'↓';
+  const color=data.tendencia==='al alza'?'#ff6a6a':'#00c46a';
+  const historial=data.historial;
+  const fechas=historial.map(h=>h.fecha);
+  const totales=historial.map(h=>h.total);
+
+  document.getElementById('stats-tend').innerHTML=`
+    <div class="stat"><div class="stat-num">${historial.length}</div><div class="stat-label">Análisis guardados</div></div>
+    <div class="stat"><div class="stat-num">$${totales[0].toLocaleString('es-AR')}</div><div class="stat-label">Primer registro</div></div>
+    <div class="stat"><div class="stat-num" style="color:${color}">${arrow} ${Math.abs(data.variacion)}%</div><div class="stat-label">Variación total</div></div>
+  `;
+
+  // Gráfico de línea evolución total
+  Plotly.newPlot('tend-line-chart',[{
+    x:fechas,y:totales,type:'scatter',mode:'lines+markers',name:'Gasto total',
+    line:{color:'#00c46a',width:2,shape:'spline'},
+    marker:{color:'#00ff9d',size:8,line:{color:'#050a12',width:1}},
+    fill:'tozeroy',fillcolor:'#00c46a08',
+    hovertemplate:'<b>%{x}</b><br>$%{y:,}<extra></extra>',
+  }],{
+    paper_bgcolor:'transparent',plot_bgcolor:'transparent',
+    margin:{t:10,b:60,l:60,r:20},height:260,
+    xaxis:{color:'#2a5a7a',gridcolor:'#0a1828',tickfont:{size:10,family:'Inter',color:'#4a80a8'},showgrid:true,tickangle:-30},
+    yaxis:{color:'#2a5a7a',gridcolor:'#0a1828',tickfont:{size:10,family:'Inter',color:'#4a80a8'},showgrid:true,zeroline:false},
+    showlegend:false,
+  },{displayModeBar:false,responsive:true});
+
+  // Gráfico por categorías
+  const todasCats=[...new Set(historial.flatMap(h=>Object.keys(h.categorias)))];
+  const tronColors=['#00ff9d','#00c46a','#4af0ff','#00e87a','#00a855','#0088ff','#007a3d','#00b3cc'];
+  const traces=todasCats.map((cat,i)=>({
+    x:fechas,
+    y:historial.map(h=>h.categorias[cat]||0),
+    type:'scatter',mode:'lines+markers',name:cat,
+    line:{color:tronColors[i%8],width:2},
+    marker:{color:tronColors[i%8],size:6},
+    hovertemplate:`<b>${cat}</b><br>%{x}<br>$%{y:,}<extra></extra>`,
+  }));
+
+  Plotly.newPlot('tend-cat-chart',traces,{
+    paper_bgcolor:'transparent',plot_bgcolor:'transparent',
+    margin:{t:10,b:60,l:60,r:20},height:300,
+    xaxis:{color:'#2a5a7a',gridcolor:'#0a1828',tickfont:{size:10,family:'Inter',color:'#4a80a8'},showgrid:true,tickangle:-30},
+    yaxis:{color:'#2a5a7a',gridcolor:'#0a1828',tickfont:{size:10,family:'Inter',color:'#4a80a8'},showgrid:true,zeroline:false},
+    legend:{font:{color:'#8abcdc',size:11,family:'Inter'},bgcolor:'transparent'},showlegend:true,
+  },{displayModeBar:false,responsive:true});
+
+  document.getElementById('results-tend').style.display='block';
+  document.getElementById('results-tend').scrollIntoView({behavior:'smooth'});
+}
+
 
 // CANVAS
 const canvas=document.getElementById('bg-canvas');

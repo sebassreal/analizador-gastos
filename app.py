@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, send_file, redirect
+from flask import Flask, render_template, request, jsonify, send_file, redirect, make_response
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_wtf.csrf import CSRFProtect
@@ -648,12 +648,14 @@ def manifest():
 def service_worker():
     return send_file('static/sw.js', mimetype='application/javascript')
 @app.route('/')
-@app.route('/')
 def index():
     from flask_wtf.csrf import generate_csrf
     nombre = current_user.nombre if current_user.is_authenticated else None
     csrf_token = generate_csrf()
-    return render_template('index.html', nombre=nombre, csrf_token=csrf_token)
+    response = make_response(render_template('index.html', nombre=nombre, csrf_token=csrf_token))
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    return response
 def index():
     return render_template('index.html')
 @limiter.limit("10 per minute")
@@ -805,5 +807,32 @@ def descargar_pdf():
             mimetype='application/pdf')
     except Exception as e:
         return jsonify({'error': str(e)})
+@app.route('/tendencias') 
+@login_required
+def tendencias():
+    analisis = Analisis.query.filter_by(user_id=current_user.id).order_by(Analisis.fecha.asc()).all()
+    
+    if len(analisis) < 2:
+        return jsonify({'error': 'Necesitás al menos 2 análisis guardados para ver tendencias.'})
+    
+    resultado = []
+    for a in analisis:
+        cats = json.loads(a.por_categoria)
+        resultado.append({
+            'fecha': a.fecha.strftime('%d/%m/%Y'),
+            'total': a.total,
+            'categorias': cats
+        })
+    
+    # Calcular tendencia general
+    totales = [a['total'] for a in resultado]
+    tendencia = 'al alza' if totales[-1] > totales[0] else 'a la baja'
+    variacion = round(((totales[-1] - totales[0]) / totales[0]) * 100, 1)
+    
+    return jsonify({
+        'historial': resultado,
+        'tendencia': tendencia,
+        'variacion': variacion
+    })
 if __name__ == '__main__':
     app.run(debug=True)

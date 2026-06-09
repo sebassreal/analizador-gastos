@@ -119,6 +119,8 @@ input[type=file]{display:none;}
 .recomendacion-item{background:#00c46a08;border:1px solid #00c46a30;border-radius:10px;padding:12px 16px;margin-top:10px;font-size:13px;color:#6abcaa;line-height:1.6;}
 .recomendacion-item strong{color:#00c46a;}
 .recomendaciones-title{font-size:11px;letter-spacing:3px;color:#00c46a;text-transform:uppercase;margin-top:20px;margin-bottom:6px;}
+.btn-pro{display:block;background:transparent;color:#4af0ff;border:1.5px solid #4af0ff;padding:14px 25px;border-radius:10px;cursor:pointer;font-size:14px;font-weight:600;width:100%;font-family:'Inter',sans-serif;letter-spacing:2px;transition:all 0.2s;text-transform:uppercase;box-shadow:0 0 16px #4af0ff20;text-shadow:0 0 8px #4af0ff;margin-top:12px;text-align:center;text-decoration:none;}
+.btn-pro:hover{background:#4af0ff15;box-shadow:0 0 28px #4af0ff40;}
 footer{text-align:center;padding:30px;font-size:11px;color:#1a4a6a;letter-spacing:3px;border-top:1px solid #00c46a20;}
 @media(max-width:900px){
   .stats{grid-template-columns:1fr;}
@@ -146,12 +148,13 @@ footer{text-align:center;padding:30px;font-size:11px;color:#1a4a6a;letter-spacin
     </div>
   </div>
   <div class="splash-tag" id="stag">track what matters</div>
-</div>
+</div>  az 
 
 <div class="content-wrap">
 <nav>
   <div class="nav-logo">Ledgr<span>°</span></div>
   <div class="nav-tag">track what matters</div>
+  <a href="/planes" class="nav-btn" style="color:#00c46a;border-color:#00c46a30;">⚡ Pro</a>
   <div class="nav-auth">
     {% if nombre %}
       <span class="nav-welcome">Hola, <strong>{{ nombre }}</strong> 👋</span>
@@ -198,6 +201,7 @@ footer{text-align:center;padding:30px;font-size:11px;color:#1a4a6a;letter-spacin
         <input type="file" id="finput" accept=".xlsx,.xls,.csv,.pdf" onchange="showName(this)">
         <p class="file-name" id="fname"></p>
         <button class="btn" onclick="analyzeFile()">⚡ Analizar gastos</button>
+        <a href="/planes" class="btn-pro">🚀 Desbloquear Ledgr° Pro</a>
       </div>
       <div id="sec-manual" class="sec">
         <table class="tbl">
@@ -378,7 +382,18 @@ let ultimoResultado=null;
 function showResults(data){
   if(data.error){alert('Error: '+data.error);return;}
   ultimoResultado=data;
-  document.getElementById('btnDownload').style.display='block';
+  const esPro=data.es_pro;
+  
+  // Mostrar botón de descarga según plan
+  const btnDownload=document.getElementById('btnDownload');
+  if(esPro){
+    btnDownload.style.display='block';
+    btnDownload.innerHTML='⬇ Descargar informe PDF completo';
+  } else {
+    btnDownload.style.display='block';
+    btnDownload.innerHTML='🔒 Descargar informe PDF — <a href="/planes" style="color:#4af0ff;text-decoration:none;">Activar Pro</a>';
+    btnDownload.onclick=()=>window.location.href='/planes';
+  }
   document.getElementById('stats').innerHTML=`
     <div class="stat"><div class="stat-num">$${data.total.toLocaleString('es-AR')}</div><div class="stat-label">Total gastado</div></div>
     <div class="stat"><div class="stat-num">${data.cantidad_gastos}</div><div class="stat-label">Transacciones</div></div>
@@ -498,13 +513,33 @@ function showResults(data){
 
 async function descargarPDF(){
   if(!ultimoResultado)return;
-  const fd=new FormData();
-  fd.append('resultado',JSON.stringify(ultimoResultado));
-  const r=await fetch('/descargar-pdf',{method:'POST',body:fd,headers:{'X-CSRFToken':getCsrf()}});
-  const blob=await r.blob();
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;a.download='informe_ledgr.pdf';a.click();
+  
+  // Capturar gráficos como imágenes
+  const graficos = {};
+  const ids = ['donut-chart','bar-chart','treemap-chart','radar-chart','line-chart'];
+  
+  for(const id of ids){
+    try{
+      const el = document.getElementById(id);
+      if(el && el.children.length > 0){
+        const img = await Plotly.toImage(el, {format:'jpeg', width:800, height:450, scale:1.5});
+        graficos[id] = img;
+      }
+    } catch(e){ console.log('Error capturando '+id, e); }
+  }
+  
+  const fd = new FormData();
+  fd.append('resultado', JSON.stringify(ultimoResultado));
+  fd.append('graficos', JSON.stringify(graficos));
+  
+  const r = await fetch('/descargar-pdf', {
+    method:'POST', body:fd,
+    headers:{'X-CSRFToken':getCsrf()}
+  });
+  const blob = await r.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href=url; a.download='informe_ledgr.pdf'; a.click();
   URL.revokeObjectURL(url);
 }
 
@@ -518,7 +553,10 @@ async function compareFiles(){
   const r=await fetch('/comparar',{method:'POST',body:fd,headers:{'X-CSRFToken':getCsrf()}});
   const d=await r.json();
   document.getElementById('loading-comp').style.display='none';
-  if(d.error){alert('Error: '+d.error);return;}
+  if(d.error){
+    if(d.error.includes('Pro')){window.location.href='/planes';return;}
+    alert('Error: '+d.error);return;
+  }
   showComparison(d);
 }
 
@@ -550,7 +588,10 @@ async function cargarTendencias(){
   const r=await fetch('/tendencias');
   const d=await r.json();
   document.getElementById('loading-tend').style.display='none';
-  if(d.error){alert(d.error);return;}
+  if(d.error){
+    if(d.error.includes('Pro')){window.location.href='/planes';return;}
+    alert(d.error);return;
+  }
   mostrarTendencias(d);
 }
 

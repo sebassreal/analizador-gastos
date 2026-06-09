@@ -691,6 +691,8 @@ def comparar():
 @csrf.exempt
 @app.route('/descargar-pdf', methods=['POST'])
 def descargar_pdf():
+    if not es_pro():
+        return jsonify({'error': 'Esta función es exclusiva del plan Pro.'}), 403
     try:
         datos = json.loads(request.form.get('resultado'))
         por_categoria = datos['por_categoria']

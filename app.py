@@ -687,7 +687,18 @@ def comparar():
         return jsonify({'mes1': r1, 'mes2': r2, 'comparacion': comparacion})
     except Exception as e:
         return jsonify({'error': 'Error al comparar los archivos.'})
-
+@csrf.exempt
+@app.route('/descargar-pdf-free', methods=['POST'])
+def descargar_pdf_free():
+    try:
+        datos = json.loads(request.form.get('resultado'))
+        por_categoria = datos['por_categoria']
+        buffer = generar_pdf(datos, por_categoria, {})
+        return send_file(buffer, as_attachment=True,
+            download_name='informe_ledgr_basic.pdf',
+            mimetype='application/pdf')
+    except Exception as e:
+        return jsonify({'error': str(e)})
 @csrf.exempt
 @app.route('/descargar-pdf', methods=['POST'])
 def descargar_pdf():

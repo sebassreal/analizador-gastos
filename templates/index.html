@@ -129,7 +129,6 @@ footer{text-align:center;padding:30px;font-size:11px;color:#1a4a6a;letter-spacin
   .hero h1{font-size:28px;}
   nav{padding:14px 16px;}
 }
-
 </style>
 </head>
 <body>
@@ -148,14 +147,14 @@ footer{text-align:center;padding:30px;font-size:11px;color:#1a4a6a;letter-spacin
     </div>
   </div>
   <div class="splash-tag" id="stag">track what matters</div>
-</div>  az 
+</div>
 
 <div class="content-wrap">
 <nav>
   <div class="nav-logo">Ledgr<span>°</span></div>
   <div class="nav-tag">track what matters</div>
-  <a href="/planes" class="nav-btn" style="color:#00c46a;border-color:#00c46a30;">⚡ Pro</a>
   <div class="nav-auth">
+    <a href="/planes" class="nav-btn" style="color:#00c46a;border-color:#00c46a30;">⚡ Pro</a>
     {% if nombre %}
       <span class="nav-welcome">Hola, <strong>{{ nombre }}</strong> 👋</span>
       <a href="/logout" class="nav-btn">Cerrar sesión</a>
@@ -178,7 +177,7 @@ footer{text-align:center;padding:30px;font-size:11px;color:#1a4a6a;letter-spacin
     <div class="tip"><div class="tip-icon">📁</div><div class="tip-title">Multi-formato</div><div class="tip-text">Compatible con Excel, CSV y PDF. O cargá tus gastos manualmente.</div></div>
   </div>
 
- <div class="main-tabs">
+  <div class="main-tabs">
     <button class="main-tab active" onclick="switchMain('analizar',this)">📊 Analizar</button>
     <button class="main-tab" onclick="switchMain('comparar',this)">⚖ Comparar meses</button>
     <button class="main-tab" onclick="switchMain('tendencias',this)">📈 Tendencias</button>
@@ -229,13 +228,13 @@ footer{text-align:center;padding:30px;font-size:11px;color:#1a4a6a;letter-spacin
         <div id="recomendaciones-container"></div>
       </div>
       <div class="card">
-      <div class="chart-title">distribución por categoría</div>
-      <div id="donut-chart"></div>
-    </div>
-    <div class="card">
-      <div class="chart-title">ranking de gastos</div>
-      <div id="bar-chart"></div>
-    </div>
+        <div class="chart-title">distribución por categoría</div>
+        <div id="donut-chart"></div>
+      </div>
+      <div class="card">
+        <div class="chart-title">ranking de gastos</div>
+        <div id="bar-chart"></div>
+      </div>
       <div class="charts-grid">
         <div class="chart-box">
           <div class="chart-title">mapa de gastos</div>
@@ -255,7 +254,7 @@ footer{text-align:center;padding:30px;font-size:11px;color:#1a4a6a;letter-spacin
         <div class="card-title">detalle por categoría</div>
         <div id="bars"></div>
         <div class="alert" id="alertMsg"></div>
-        <button class="btn-download" id="btnDownload" onclick="descargarPDF()" style="display:none;">⬇ Descargar informe PDF</button>
+        <button class="btn-download" id="btnDownload" style="display:none;">⬇ Descargar informe PDF</button>
       </div>
     </div>
   </div>
@@ -300,8 +299,8 @@ footer{text-align:center;padding:30px;font-size:11px;color:#1a4a6a;letter-spacin
       </div>
     </div>
   </div>
-</div>
-<div id="main-tendencias" class="main-sec">
+
+  <div id="main-tendencias" class="main-sec">
     <div class="card">
       <div class="card-title">análisis de tendencias</div>
       <p style="font-size:13px;color:#4a80a8;margin-bottom:20px;">Evolución de tus gastos a lo largo del tiempo basada en tu historial.</p>
@@ -323,6 +322,8 @@ footer{text-align:center;padding:30px;font-size:11px;color:#1a4a6a;letter-spacin
       </div>
     </div>
   </div>
+</div>
+
 <footer>Ledgr° &nbsp;·&nbsp; track what matters &nbsp;·&nbsp; 2025</footer>
 </div>
 
@@ -356,6 +357,7 @@ function showName(input){const p=document.getElementById('fname');if(input.files
 function showNameComp(input,id){const p=document.getElementById(id);if(input.files[0]){p.textContent='✓ '+input.files[0].name;p.style.display='block';}}
 function addRow(){const tb=document.getElementById('trows');const tr=document.createElement('tr');tr.innerHTML='<td><input type="text" placeholder="01/03/2025"></td><td><input type="text" placeholder="Descripción"></td><td><input type="text" placeholder="Categoría"></td><td><input type="number" placeholder="0"></td>';tb.appendChild(tr);}
 function getCsrf(){return document.querySelector('meta[name="csrf-token"]').getAttribute('content');}
+
 async function analyzeFile(){
   const f=document.getElementById('finput').files[0];
   if(!f){alert('Seleccioná un archivo primero');return;}
@@ -366,39 +368,42 @@ async function analyzeFile(){
   document.getElementById('loading').style.display='none';
   showResults(d);
 }
+
 async function analyzeManual(){
   const rows=document.querySelectorAll('#trows tr');
   const data={Fecha:[],Descripcion:[],Categoria:[],Monto:[]};
   rows.forEach(row=>{const inp=row.querySelectorAll('input');if(inp[3].value){data.Fecha.push(inp[0].value);data.Descripcion.push(inp[1].value);data.Categoria.push(inp[2].value);data.Monto.push(parseFloat(inp[3].value));}});
   const fd=new FormData();fd.append('datos_manuales',JSON.stringify(data));
   document.getElementById('loading').style.display='block';
-  const r=await fetch('/analizar',{method:'POST',body:fd});
+  const r=await fetch('/analizar',{method:'POST',body:fd,headers:{'X-CSRFToken':getCsrf()}});
   const d=await r.json();
   document.getElementById('loading').style.display='none';
   showResults(d);
 }
 
 let ultimoResultado=null;
+
 function showResults(data){
   if(data.error){alert('Error: '+data.error);return;}
   ultimoResultado=data;
   const esPro=data.es_pro;
-  
-  // Mostrar botón de descarga según plan
   const btnDownload=document.getElementById('btnDownload');
   if(esPro){
     btnDownload.style.display='block';
     btnDownload.innerHTML='⬇ Descargar informe PDF completo';
+    btnDownload.onclick=()=>descargarPDF();
   } else {
     btnDownload.style.display='block';
-    btnDownload.innerHTML='🔒 Descargar informe PDF — <a href="/planes" style="color:#4af0ff;text-decoration:none;">Activar Pro</a>';
-    btnDownload.onclick=()=>window.location.href='/planes';
+    btnDownload.innerHTML='⬇ Informe básico (Free) &nbsp;|&nbsp; <a href="/planes" style="color:#4af0ff;text-decoration:none;">⚡ Pro con todos los gráficos</a>';
+    btnDownload.onclick=()=>descargarPDFFree();
   }
+
   document.getElementById('stats').innerHTML=`
     <div class="stat"><div class="stat-num">$${data.total.toLocaleString('es-AR')}</div><div class="stat-label">Total gastado</div></div>
     <div class="stat"><div class="stat-num">${data.cantidad_gastos}</div><div class="stat-label">Transacciones</div></div>
     <div class="stat"><div class="stat-num">$${data.gasto_promedio.toLocaleString('es-AR')}</div><div class="stat-label">Gasto promedio</div></div>
   `;
+
   const cats=Object.keys(data.por_categoria);
   const montos=Object.values(data.por_categoria);
   const tronColors=['#00ff9d','#00c46a','#4af0ff','#00e87a','#00a855','#0088ff','#007a3d','#00b3cc'];
@@ -490,56 +495,57 @@ function showResults(data){
   });
   document.getElementById('bars').innerHTML=html;
   document.getElementById('alertMsg').innerHTML=`⚠️ Tu mayor gasto fue en <strong>${data.categoria_max}</strong> con <strong>$${data.monto_max.toLocaleString('es-AR')}</strong>. Revisá si podés optimizar esa categoría.`;
-  // Mostrar alertas inteligentes
+
   let alertasHTML='';
   if(data.alertas && data.alertas.length>0){
-    data.alertas.forEach(a=>{
-      alertasHTML+=`<div class="alerta-item alerta-${a.tipo}">${a.mensaje}</div>`;
-    });
+    data.alertas.forEach(a=>{alertasHTML+=`<div class="alerta-item alerta-${a.tipo}">${a.mensaje}</div>`;});
   }
   document.getElementById('alertas-container').innerHTML=alertasHTML;
-  // Mostrar recomendaciones
+
   let recoHTML='';
   if(data.recomendaciones && data.recomendaciones.length>0){
     recoHTML+='<div class="recomendaciones-title">💡 Recomendaciones</div>';
-    data.recomendaciones.forEach(r=>{
-      recoHTML+=`<div class="recomendacion-item">${r}</div>`;
-    });
+    data.recomendaciones.forEach(r=>{recoHTML+=`<div class="recomendacion-item">${r}</div>`;});
   }
   document.getElementById('recomendaciones-container').innerHTML=recoHTML;
+
   document.getElementById('results').style.display='block';
   document.getElementById('results').scrollIntoView({behavior:'smooth'});
 }
 
 async function descargarPDF(){
   if(!ultimoResultado)return;
-  
-  // Capturar gráficos como imágenes
-  const graficos = {};
-  const ids = ['donut-chart','bar-chart','treemap-chart','radar-chart','line-chart'];
-  
+  const graficos={};
+  const ids=['donut-chart','bar-chart','treemap-chart','radar-chart','line-chart'];
   for(const id of ids){
     try{
-      const el = document.getElementById(id);
-      if(el && el.children.length > 0){
-        const img = await Plotly.toImage(el, {format:'jpeg', width:800, height:450, scale:1.5});
-        graficos[id] = img;
+      const el=document.getElementById(id);
+      if(el && el.children.length>0){
+        const img=await Plotly.toImage(el,{format:'jpeg',width:800,height:450,scale:1.5});
+        graficos[id]=img;
       }
-    } catch(e){ console.log('Error capturando '+id, e); }
+    }catch(e){console.log('Error capturando '+id,e);}
   }
-  
-  const fd = new FormData();
-  fd.append('resultado', JSON.stringify(ultimoResultado));
-  fd.append('graficos', JSON.stringify(graficos));
-  
-  const r = await fetch('/descargar-pdf', {
-    method:'POST', body:fd,
-    headers:{'X-CSRFToken':getCsrf()}
-  });
-  const blob = await r.blob();
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href=url; a.download='informe_ledgr.pdf'; a.click();
+  const fd=new FormData();
+  fd.append('resultado',JSON.stringify(ultimoResultado));
+  fd.append('graficos',JSON.stringify(graficos));
+  const r=await fetch('/descargar-pdf',{method:'POST',body:fd,headers:{'X-CSRFToken':getCsrf()}});
+  const blob=await r.blob();
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='informe_ledgr.pdf';a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function descargarPDFFree(){
+  if(!ultimoResultado)return;
+  const fd=new FormData();
+  fd.append('resultado',JSON.stringify(ultimoResultado));
+  const r=await fetch('/descargar-pdf-free',{method:'POST',body:fd,headers:{'X-CSRFToken':getCsrf()}});
+  const blob=await r.blob();
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='informe_ledgr_basic.pdf';a.click();
   URL.revokeObjectURL(url);
 }
 
@@ -582,6 +588,7 @@ function showComparison(data){
   document.getElementById('results-comp').style.display='block';
   document.getElementById('results-comp').scrollIntoView({behavior:'smooth'});
 }
+
 async function cargarTendencias(){
   document.getElementById('loading-tend').style.display='block';
   document.getElementById('results-tend').style.display='none';
@@ -601,14 +608,11 @@ function mostrarTendencias(data){
   const historial=data.historial;
   const fechas=historial.map(h=>h.fecha);
   const totales=historial.map(h=>h.total);
-
   document.getElementById('stats-tend').innerHTML=`
     <div class="stat"><div class="stat-num">${historial.length}</div><div class="stat-label">Análisis guardados</div></div>
     <div class="stat"><div class="stat-num">$${totales[0].toLocaleString('es-AR')}</div><div class="stat-label">Primer registro</div></div>
     <div class="stat"><div class="stat-num" style="color:${color}">${arrow} ${Math.abs(data.variacion)}%</div><div class="stat-label">Variación total</div></div>
   `;
-
-  // Gráfico de línea evolución total
   Plotly.newPlot('tend-line-chart',[{
     x:fechas,y:totales,type:'scatter',mode:'lines+markers',name:'Gasto total',
     line:{color:'#00c46a',width:2,shape:'spline'},
@@ -623,18 +627,15 @@ function mostrarTendencias(data){
     showlegend:false,
   },{displayModeBar:false,responsive:true});
 
-  // Gráfico por categorías
   const todasCats=[...new Set(historial.flatMap(h=>Object.keys(h.categorias)))];
   const tronColors=['#00ff9d','#00c46a','#4af0ff','#00e87a','#00a855','#0088ff','#007a3d','#00b3cc'];
   const traces=todasCats.map((cat,i)=>({
-    x:fechas,
-    y:historial.map(h=>h.categorias[cat]||0),
+    x:fechas,y:historial.map(h=>h.categorias[cat]||0),
     type:'scatter',mode:'lines+markers',name:cat,
     line:{color:tronColors[i%8],width:2},
     marker:{color:tronColors[i%8],size:6},
     hovertemplate:`<b>${cat}</b><br>%{x}<br>$%{y:,}<extra></extra>`,
   }));
-
   Plotly.newPlot('tend-cat-chart',traces,{
     paper_bgcolor:'transparent',plot_bgcolor:'transparent',
     margin:{t:10,b:60,l:60,r:20},height:300,
@@ -647,8 +648,6 @@ function mostrarTendencias(data){
   document.getElementById('results-tend').scrollIntoView({behavior:'smooth'});
 }
 
-
-// CANVAS
 const canvas=document.getElementById('bg-canvas');
 const ctx=canvas.getContext('2d');
 let w,h;
@@ -670,7 +669,6 @@ function draw(){
 }
 draw();
 
-// ICONS
 const ICON_NAMES=['home','car','shopping-cart','credit-card','zap','film','smartphone','wallet','users','utensils','plane','heart-pulse'];
 const layer=document.getElementById('icon-layer');
 function createIcon(){

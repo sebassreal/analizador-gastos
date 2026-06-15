@@ -385,9 +385,19 @@ async function analyzeManual(){
 
 let ultimoResultado=null;
 
+// Recuperar resultados guardados al volver
+window.addEventListener('load',()=>{
+  const guardado=sessionStorage.getItem('ultimoResultado');
+  if(guardado){
+    ultimoResultado=JSON.parse(guardado);
+    showResults(ultimoResultado);
+  }
+});
+
 function showResults(data){
   if(data.error){alert('Error: '+data.error);return;}
   ultimoResultado=data;
+  sessionStorage.setItem('ultimoResultado',JSON.stringify(data));
   const esPro=data.es_pro;
 if(esPro){
     document.getElementById('btnDownloadPro').style.display='block';

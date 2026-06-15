@@ -254,7 +254,9 @@ footer{text-align:center;padding:30px;font-size:11px;color:#1a4a6a;letter-spacin
         <div class="card-title">detalle por categoría</div>
         <div id="bars"></div>
         <div class="alert" id="alertMsg"></div>
-        <button class="btn-download" id="btnDownload" style="display:none;">⬇ Descargar informe PDF</button>
+        <button class="btn-download" id="btnDownloadPro" onclick="descargarPDF()" style="display:none;">⬇ Descargar informe PDF completo</button>
+        <button class="btn-download" id="btnDownloadFree" onclick="descargarPDFFree()" style="display:none;margin-top:8px;">⬇ Descargar informe básico</button>
+        <a href="/planes" id="btnUpgradePro" style="display:none;margin-top:8px;" class="btn-pro">⚡ Mejorar a Pro — PDF completo con gráficos</a>
       </div>
     </div>
   </div>
@@ -387,15 +389,14 @@ function showResults(data){
   if(data.error){alert('Error: '+data.error);return;}
   ultimoResultado=data;
   const esPro=data.es_pro;
-  const btnDownload=document.getElementById('btnDownload');
-  if(esPro){
-    btnDownload.style.display='block';
-    btnDownload.innerHTML='⬇ Descargar informe PDF completo';
-    btnDownload.onclick=()=>descargarPDF();
+if(esPro){
+    document.getElementById('btnDownloadPro').style.display='block';
+    document.getElementById('btnDownloadFree').style.display='none';
+    document.getElementById('btnUpgradePro').style.display='none';
   } else {
-    btnDownload.style.display='block';
-    btnDownload.innerHTML='⬇ Informe básico (Free) &nbsp;|&nbsp; <a href="/planes" style="color:#4af0ff;text-decoration:none;">⚡ Pro con todos los gráficos</a>';
-    btnDownload.onclick=()=>descargarPDFFree();
+    document.getElementById('btnDownloadPro').style.display='none';
+    document.getElementById('btnDownloadFree').style.display='block';
+    document.getElementById('btnUpgradePro').style.display='block';
   }
 
   document.getElementById('stats').innerHTML=`
